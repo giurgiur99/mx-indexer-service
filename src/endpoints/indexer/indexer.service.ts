@@ -43,7 +43,7 @@ export class IndexerService {
     });
     return await this.indexerDataModel.insertMany(apiData);
   }
-  async getPairs() {
+  getPairs() {
     return this.indexerDataModel.find<IndexerData>();
   }
 

@@ -28,7 +28,9 @@ export class IndexerController {
     const pairs: String[] = [];
     if (result) {
       result.forEach((pair: IndexerData) => {
-        pairs.push(pair.pair!);
+        if (pair.pair) {
+          pairs.push(pair.pair);
+        }
       });
     }
     return pairs;
