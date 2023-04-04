@@ -3,28 +3,48 @@ import { HttpService } from '@nestjs/axios';
 import { catchError, firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 import { MexPair } from './entities/mex-pairs.entity';
+import { dexDataDTO } from './entities/indexer.entity';
+import { NotFoundException } from './indexer.error';
+import {
+  IndexerData,
+  IndexerDataDocument,
+} from './entities/indexer.data.schema';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class IndexerService {
   private readonly logger = new Logger(IndexerService.name);
-  constructor(private readonly httpService: HttpService) {}
-  async getPairs(): Promise<MexPair[]> {
-    const api = 'https://api.multiversx.com/mex/pairs';
+  constructor(
+    private readonly httpService: HttpService,
+    @InjectModel(IndexerData.name)
+    private readonly indexerDataModel: Model<IndexerDataDocument>,
+  ) {}
+
+  async startIndexing(dexData: dexDataDTO) {
+    const api = dexData.api;
     const { data } = await firstValueFrom(
       this.httpService.get(api).pipe(
         catchError((err: AxiosError) => {
           this.logger.error(err.response?.data);
-          throw 'Err fetching pairs';
+          throw new NotFoundException('Err fetching data from API');
         }),
       ),
     );
-
-    return data.map((pair: MexPair): { symbol: string; pair: string } => {
+    const apiData = data.map((pair: MexPair) => {
       return {
-        symbol: pair.symbol,
+        address: pair.address,
+        pairId: pair.id,
+        price: pair.price,
         pair: pair.baseSymbol + pair.quoteSymbol,
+        volume: pair.volume24h,
+        provider: dexData.provider,
       };
     });
+    return await this.indexerDataModel.insertMany(apiData);
+  }
+  async getPairs() {
+    return this.indexerDataModel.find<IndexerData>();
   }
 
   async getContracts(): Promise<any> {
