@@ -74,19 +74,33 @@ export class IndexerService {
         },
       },
     };
+
     const { data } = await firstValueFrom(
       this.httpService.post<LogsResponse>(api, query).pipe(
         catchError((err: AxiosError) => {
           this.logger.error(err.response?.data);
-          throw 'Err fetching contracts';
+          throw new NotFoundException(
+            err.response
+              ? err.response.statusText
+              : 'Err fetching data from API',
+          );
         }),
       ),
     );
 
-    return data.hits.hits.map((hit) =>
-      hit._source.events.find(
+    return data.hits.hits.map((hit) => {
+      const logs: any[] = [];
+      const result = hit._source.events.find(
         (event) => event.identifier === 'swapTokensFixedInput',
-      ),
-    );
+      );
+      if (result) {
+        result.topics.forEach((topic) => {
+          const buffer = Buffer.from(topic, 'base64');
+          logs.push(buffer.toString('utf-8'));
+        });
+      }
+
+      return logs;
+    });
   }
 }

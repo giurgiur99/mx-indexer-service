@@ -38,6 +38,10 @@ export class IndexerController {
 
   @Get('contracts')
   async getContracts(): Promise<any> {
-    return await this.indexerService.getContracts();
+    try {
+      return await this.indexerService.getContracts();
+    } catch (e) {
+      return e;
+    }
   }
 }
