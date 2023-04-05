@@ -7,7 +7,11 @@ import { IndexerData } from './entities/indexer.data.schema';
 @Controller('indexer')
 @ApiTags('indexer')
 export class IndexerController {
-  constructor(private readonly indexerService: IndexerService) {}
+  constructor(private readonly indexerService: IndexerService) { }
+
+  // TODO:
+  // - add endpoint index that receives timestamps for start, end, as well as indexer name 
+  // and calls the indexInterval function
 
   @Post('start')
   async startIndexing(@Body() body: dexDataDTO) {
