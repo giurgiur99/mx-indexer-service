@@ -36,6 +36,7 @@ export class IndexerService {
     // TODO:
     // - delete from the database all rows for the given indexer
     // - fetch all logs between start and end emitted by the given contracts
+    //   - use can use ElasticService for this
     // - call getPairChange that should decode the swapTokensFixedInput & swapTokensFixedOutput events for now
     // - insert the results in the database
     //   - the table structure should be the following;
@@ -43,7 +44,11 @@ export class IndexerService {
     //     - pair: string 
     //     - price: number
     //     - volume: number
+    //     - fee: number (populate with 0 for now)
     //     - timestamp: number
+
+    // decoding address: (AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM=)
+    // AddressUtils.bech32Encode(BinaryUtils.base64ToHex('AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM='))
   }
 
   async startIndexing(dexData: dexDataDTO) {
