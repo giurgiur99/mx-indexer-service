@@ -21,7 +21,7 @@ export class IndexerService {
     private readonly httpService: HttpService,
     @InjectModel(IndexerData.name)
     private readonly indexerDataModel: Model<IndexerDataDocument>,
-  ) { }
+  ) {}
 
   getIndexer(name: string): IndexerInterface | undefined {
     switch (name) {
@@ -32,7 +32,11 @@ export class IndexerService {
     return undefined;
   }
 
-  async indexInterval(_start: Date, _end: Date, _indexer: IndexerInterface): Promise<void> {
+  async indexInterval(
+    _start: Date,
+    _end: Date,
+    _indexer: IndexerInterface,
+  ): Promise<void> {
     // TODO:
     // - delete from the database all rows for the given indexer
     // - fetch all logs between start and end emitted by the given contracts
@@ -41,12 +45,11 @@ export class IndexerService {
     // - insert the results in the database
     //   - the table structure should be the following;
     //     - exchange: string
-    //     - pair: string 
+    //     - pair: string
     //     - price: number
     //     - volume: number
     //     - fee: number (populate with 0 for now)
     //     - timestamp: number
-
     // decoding address: (AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM=)
     // AddressUtils.bech32Encode(BinaryUtils.base64ToHex('AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM='))
   }

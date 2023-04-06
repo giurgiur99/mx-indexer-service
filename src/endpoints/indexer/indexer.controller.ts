@@ -1,49 +1,50 @@
-import { Body, Controller, Get, NotFoundException, Post } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { IndexerService } from './indexer.service';
-import { dexDataDTO } from './entities/indexer.entity';
-import { IndexerData } from './entities/indexer.data.schema';
 
 @Controller('indexer')
 @ApiTags('indexer')
 export class IndexerController {
-  constructor(private readonly indexerService: IndexerService) { }
+  constructor(private readonly indexerService: IndexerService) {}
 
-  // TODO:
-  // - add endpoint index that receives start, end in YYYY-MM-DD HH:MM:SS (UTC), as well as indexer name 
-  // and calls the indexInterval function
-
-  @Post('start')
-  async startIndexing(@Body() body: dexDataDTO) {
+  @Post(':name/start')
+  startIndexing(
+    @Param('name') name: string,
+    @Query('startDate') startDate: Date,
+    @Query('endDate') endDate: Date,
+  ) {
     try {
-      return await this.indexerService.startIndexing(body);
+      const indexer = this.indexerService.getIndexer(name);
+      if (!indexer) return new NotFoundException('Indexer not found');
+      return this.indexerService.indexInterval(startDate, endDate, indexer);
     } catch (e) {
       return e;
     }
   }
 
-  @Get('pairs')
-  async getPairs(): Promise<String[]> {
-    const result = await this.indexerService.getPairs();
+  @Get(':name/pairs')
+  async getPairs(@Param('name') name: string): Promise<String[]> {
+    const indexer = this.indexerService.getIndexer(name);
+    const result = await indexer?.getPairs();
     if (!result) {
       throw new NotFoundException('No pairs found');
     }
 
-    const pairs: String[] = [];
-    if (result) {
-      result.forEach((pair: IndexerData) => {
-        if (pair.pair) {
-          pairs.push(pair.pair);
-        }
-      });
-    }
-    return pairs;
+    return result;
   }
 
-  @Get('contracts')
-  async getContracts(): Promise<any> {
+  @Get(':name/contracts')
+  async getContracts(@Param('name') name: string): Promise<any> {
     try {
-      return await this.indexerService.getContracts();
+      const indexer = this.indexerService.getIndexer(name);
+      return await indexer?.getContracts();
     } catch (e) {
       return e;
     }
