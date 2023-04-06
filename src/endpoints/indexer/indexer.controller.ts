@@ -6,11 +6,9 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
 import { IndexerService } from './indexer.service';
 
 @Controller('indexer')
-@ApiTags('indexer')
 export class IndexerController {
   constructor(private readonly indexerService: IndexerService) {}
 

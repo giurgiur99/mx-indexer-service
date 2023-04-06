@@ -16,10 +16,18 @@ services:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_DATABASE=example
 
+  postgres:
+    image: "postgres:latest"
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=example
+
   mongodb:
     image: mongo:latest
     environment:
       - MONGODB_DATABASE="example"
     ports:
-      - 27017:27017
+      - "27017:27017"
 
