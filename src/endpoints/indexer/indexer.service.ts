@@ -11,6 +11,8 @@ import {
 } from './entities/indexer.data.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { IndexerInterface } from './indexer.interface';
+import { XexchangeIndexer } from './implementations/xexchange.indexer';
 
 @Injectable()
 export class IndexerService {
@@ -19,7 +21,35 @@ export class IndexerService {
     private readonly httpService: HttpService,
     @InjectModel(IndexerData.name)
     private readonly indexerDataModel: Model<IndexerDataDocument>,
-  ) {}
+  ) { }
+
+  getIndexer(name: string): IndexerInterface | undefined {
+    switch (name) {
+      case 'xexchange':
+        return new XexchangeIndexer();
+    }
+
+    return undefined;
+  }
+
+  async indexInterval(_start: Date, _end: Date, _indexer: IndexerInterface): Promise<void> {
+    // TODO:
+    // - delete from the database all rows for the given indexer
+    // - fetch all logs between start and end emitted by the given contracts
+    //   - use can use ElasticService for this
+    // - call getPairChange that should decode the swapTokensFixedInput & swapTokensFixedOutput events for now
+    // - insert the results in the database
+    //   - the table structure should be the following;
+    //     - exchange: string
+    //     - pair: string 
+    //     - price: number
+    //     - volume: number
+    //     - fee: number (populate with 0 for now)
+    //     - timestamp: number
+
+    // decoding address: (AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM=)
+    // AddressUtils.bech32Encode(BinaryUtils.base64ToHex('AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM='))
+  }
 
   async startIndexing(dexData: dexDataDTO) {
     const api = dexData.api;
