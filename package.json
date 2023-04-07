@@ -61,6 +61,7 @@
     "mongoose": "^6.9.2",
     "mysql2": "^3.1.2",
     "nest-winston": "^1.8.0",
+    "pg": "^8.10.0",
     "prom-client": "^14.1.1",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^4.1.2",

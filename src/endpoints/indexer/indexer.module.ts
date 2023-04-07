@@ -2,17 +2,27 @@ import { Module } from '@nestjs/common';
 import { IndexerController } from './indexer.controller';
 import { IndexerService } from './indexer.service';
 import { HttpModule } from '@nestjs/axios';
-import { NoSQLDatabaseModule } from '../../common/database/nosql.module';
-import { MongooseModule } from '@nestjs/mongoose';
-import { IndexerData, IndexerDataSchema } from './entities/indexer.data.schema';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ApiConfigModule } from '../../common/api-config/api.config.module';
+import { ApiConfigService } from '../../common/api-config/api.config.service';
+import { IndexerData } from './entities/indexer.data.schema';
 
 @Module({
+  //add postgres module here
   imports: [
     HttpModule,
-    NoSQLDatabaseModule,
-    MongooseModule.forFeature([
-      { name: IndexerData.name, schema: IndexerDataSchema },
-    ]),
+    TypeOrmModule.forRootAsync({
+      imports: [ApiConfigModule],
+      useFactory: (apiConfigService: ApiConfigService) => ({
+        type: 'postgres',
+        ...apiConfigService.getPostgresConnection(),
+        entities: [IndexerData],
+        keepConnectionAlive: true,
+        synchronize: true,
+      }),
+      inject: [ApiConfigService],
+    }),
+    TypeOrmModule.forFeature([IndexerData]),
   ],
   controllers: [IndexerController],
   providers: [IndexerService],

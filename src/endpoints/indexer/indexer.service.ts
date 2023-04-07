@@ -3,23 +3,13 @@ import { HttpService } from '@nestjs/axios';
 import { catchError, firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 import { NotFoundException } from './indexer.error';
-import {
-  IndexerData,
-  IndexerDataDocument,
-} from './entities/indexer.data.schema';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { IndexerInterface } from './indexer.interface';
 import { XexchangeIndexer } from './implementations/xexchange.indexer';
 
 @Injectable()
 export class IndexerService {
   private readonly logger = new Logger(IndexerService.name);
-  constructor(
-    private readonly httpService: HttpService,
-    @InjectModel(IndexerData.name)
-    private readonly indexerDataModel: Model<IndexerDataDocument>,
-  ) {}
+  constructor(private readonly httpService: HttpService) {}
 
   getIndexer(name: string): IndexerInterface | undefined {
     switch (name) {
@@ -50,10 +40,6 @@ export class IndexerService {
     //     - timestamp: number
     // decoding address: (AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM=)
     // AddressUtils.bech32Encode(BinaryUtils.base64ToHex('AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM='))
-  }
-
-  getPairs() {
-    return this.indexerDataModel.find<IndexerData>();
   }
 
   async getContracts(): Promise<any> {

@@ -11,6 +11,12 @@ database:
   username: 'root'
   password: 'root'
   name: 'example'
+postgres:
+  host: 'localhost'
+  port: 5432
+  username: 'postgres'
+  password: 'root'
+  name: 'postgres'
 features:
   publicApi:
     enabled: true

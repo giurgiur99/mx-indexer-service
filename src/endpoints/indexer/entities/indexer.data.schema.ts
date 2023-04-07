@@ -1,30 +1,25 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-export type IndexerDataDocument = IndexerData & Document;
-
-@Schema()
+@Entity('indexer')
 export class IndexerData {
-  @Prop()
-  name?: string;
+  @PrimaryGeneratedColumn()
+  id?: number;
 
-  @Prop()
+  @Column()
   pairId?: string;
 
-  @Prop()
+  @Column()
   address?: string;
 
-  @Prop()
+  @Column()
   pair?: string;
 
-  @Prop()
+  @Column()
   price?: string;
 
-  @Prop()
+  @Column()
   volume?: number;
 
-  @Prop()
+  @Column()
   provider?: string;
 }
-
-export const IndexerDataSchema = SchemaFactory.createForClass(IndexerData);
