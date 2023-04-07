@@ -10,7 +10,7 @@ import { IndexerService } from './indexer.service';
 
 @Controller('indexer')
 export class IndexerController {
-  constructor(private readonly indexerService: IndexerService) {}
+  constructor(private indexerService: IndexerService) {}
 
   @Post(':name/start')
   startIndexing(
