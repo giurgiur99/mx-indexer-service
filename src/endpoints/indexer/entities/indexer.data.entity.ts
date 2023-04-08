@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity()
+@Entity('indexer_data')
 export class IndexerData {
   @PrimaryGeneratedColumn()
   id?: number;

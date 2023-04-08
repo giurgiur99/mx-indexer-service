@@ -9,6 +9,7 @@ import { IndexerData } from '../../endpoints/indexer/entities/indexer.data.entit
   imports: [
     TypeOrmModule.forRootAsync({
       imports: [ApiConfigModule],
+      name: 'default',
       useFactory: (apiConfigService: ApiConfigService) => ({
         type: 'mysql',
         ...apiConfigService.getDatabaseConnection(),
@@ -21,6 +22,7 @@ import { IndexerData } from '../../endpoints/indexer/entities/indexer.data.entit
     TypeOrmModule.forFeature([User]),
     TypeOrmModule.forRootAsync({
       imports: [ApiConfigModule],
+      name: 'indexer',
       useFactory: (apiConfigService: ApiConfigService) => ({
         type: 'postgres',
         ...apiConfigService.getPostgresConnection(),
@@ -30,7 +32,7 @@ import { IndexerData } from '../../endpoints/indexer/entities/indexer.data.entit
       }),
       inject: [ApiConfigService],
     }),
-    TypeOrmModule.forFeature([IndexerData]),
+    TypeOrmModule.forFeature([IndexerData], 'indexer'),
   ],
   exports: [
     TypeOrmModule.forFeature([User]),

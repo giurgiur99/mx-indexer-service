@@ -8,12 +8,6 @@ import { XexchangeIndexer } from './implementations/xexchange.indexer';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IndexerData } from './entities/indexer.data.entity';
 import { Repository } from 'typeorm';
-import {
-  AbstractQuery,
-  ElasticQuery,
-  ElasticService,
-  QueryConditionOptions,
-} from '@multiversx/sdk-nestjs';
 
 @Injectable()
 export class IndexerService {
@@ -21,8 +15,8 @@ export class IndexerService {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly elasticService: ElasticService,
-    @InjectRepository(IndexerData)
+    // private readonly elasticService: ElasticService,
+    @InjectRepository(IndexerData, 'indexer')
     private readonly indexerDataRepository: Repository<IndexerData>,
   ) {}
 
@@ -42,24 +36,24 @@ export class IndexerService {
   ): Promise<void> {
     // TODO:
     // - delete from the database all rows for the given indexer
-    // console.log('\n', this.indexerDataRepository.find(), '\n');
     await this.indexerDataRepository.clear();
+
     // - fetch all logs between start and end emitted by the given contracts using elastisearch
-    const queries: AbstractQuery | AbstractQuery[] = [];
-    // for (const hash of hashes) {
-    //   queries.push(QueryType.Match('_id', hash));
-    // }
-
-    const elasticQueryLogs = ElasticQuery.create()
-      .withPagination({ from: 0, size: 10000 })
-      .withCondition(QueryConditionOptions.should, queries);
-
-    const logs = await this.elasticService.getList(
-      'logs',
-      'id',
-      elasticQueryLogs,
-    );
-    console.log(logs);
+    // const queries: AbstractQuery | AbstractQuery[] = [];
+    // // for (const hash of hashes) {
+    // //   queries.push(QueryType.Match('_id', hash));
+    // // }
+    //
+    // const elasticQueryLogs = ElasticQuery.create()
+    //   .withPagination({ from: 0, size: 10000 })
+    //   .withCondition(QueryConditionOptions.should, queries);
+    //
+    // const logs = await this.elasticService.getList(
+    //   'logs',
+    //   'id',
+    //   elasticQueryLogs,
+    // );
+    // console.log(logs);
 
     //   - use can use ElasticService for this
     // - call getPairChange that should decode the swapTokensFixedInput & swapTokensFixedOutput events for now
