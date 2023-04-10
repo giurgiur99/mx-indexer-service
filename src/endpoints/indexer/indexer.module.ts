@@ -2,25 +2,13 @@ import { Module } from '@nestjs/common';
 import { IndexerController } from './indexer.controller';
 import { IndexerService } from './indexer.service';
 import { HttpModule } from '@nestjs/axios';
-import {
-  ApiModuleOptions,
-  ApiService,
-  ElasticModuleOptions,
-  ElasticService,
-} from '@multiversx/sdk-nestjs';
 import { DatabaseModule } from '../../common/database/database.module';
+import { DynamicModuleUtils } from '../../utils/dynamic.module.utils';
 
 @Module({
-  //add postgres module here
-  imports: [HttpModule, DatabaseModule],
+  imports: [HttpModule, DatabaseModule, DynamicModuleUtils.getElasticModule()],
   controllers: [IndexerController],
-  providers: [
-    IndexerService,
-    ElasticService,
-    ElasticModuleOptions,
-    ApiService,
-    ApiModuleOptions,
-  ],
+  providers: [IndexerService],
   exports: [IndexerService],
 })
 export class IndexerModule {}
