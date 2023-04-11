@@ -1,7 +1,24 @@
-import { PairChange } from '../entities/pair.change';
-import { IndexerInterface } from '../indexer.interface';
+import { Injectable } from '@nestjs/common';
 
-export class XexchangeIndexer implements IndexerInterface {
+import { Repository } from 'typeorm';
+
+import { IndexerInterface } from '../indexer.interface';
+import { LogDb } from './entities';
+import { PairChange } from '../entities/pair.change';
+
+@Injectable()
+export class PostgresIndexerService implements IndexerInterface {
+  constructor(private readonly logsRepository: Repository<LogDb>) {}
+
+  async getTransactionLogs(hashes: string[]): Promise<any[]> {
+    const query = this.logsRepository
+      .createQueryBuilder()
+      .skip(0)
+      .take(10000)
+      .where('id IN (:...hashes)', { hashes });
+
+    return await query.getMany();
+  }
   getName(): string {
     return 'xexchange';
   }
@@ -19,10 +36,6 @@ export class XexchangeIndexer implements IndexerInterface {
   // eslint-disable-next-line require-await
   async getPairChange(_event: any): Promise<PairChange[]> {
     // TODO: decode swapTokensFixedInput, swapTokensFixedOutput event that returns price & volume
-    return [];
-  }
-
-  async getTransactionLogs(_hashes: string[]): Promise<any[]> {
     return [];
   }
 }

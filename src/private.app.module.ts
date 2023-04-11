@@ -26,4 +26,4 @@ import { LoggingModule } from '@multiversx/sdk-nestjs';
     TestSocketController,
   ],
 })
-export class PrivateAppModule { }
+export class PrivateAppModule {}

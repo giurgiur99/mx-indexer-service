@@ -5,6 +5,7 @@ urls:
     - 'https://testnet-microservice.multiversx.com'
     - 'https://microservice.multiversx.com'
   redis: '127.0.0.1'
+  elastic: 'https://devnet-index.elrond.com'
 database:
   host: 'localhost'
   port: 3306

@@ -1,12 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
+import { PostgresIndexerModule } from './postgres/postgres.indexer.module';
 import { IndexerController } from './indexer.controller';
 import { IndexerService } from './indexer.service';
-import { HttpModule } from '@nestjs/axios';
-import { DatabaseModule } from '../../common/database/database.module';
-import { DynamicModuleUtils } from '../../utils/dynamic.module.utils';
 
+@Global()
 @Module({
-  imports: [HttpModule, DatabaseModule, DynamicModuleUtils.getElasticModule()],
+  imports: [PostgresIndexerModule],
   controllers: [IndexerController],
   providers: [IndexerService],
   exports: [IndexerService],
