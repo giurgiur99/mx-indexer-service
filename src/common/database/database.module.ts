@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/endpoints/users/entities/user.entity';
 import { ApiConfigModule } from '../api-config/api.config.module';
 import { ApiConfigService } from '../api-config/api.config.service';
-import { IndexerData } from '../../endpoints/indexer/entities/indexer.data.entity';
 
 @Module({
   imports: [
@@ -20,23 +19,7 @@ import { IndexerData } from '../../endpoints/indexer/entities/indexer.data.entit
       inject: [ApiConfigService],
     }),
     TypeOrmModule.forFeature([User]),
-    TypeOrmModule.forRootAsync({
-      imports: [ApiConfigModule],
-      name: 'indexer',
-      useFactory: (apiConfigService: ApiConfigService) => ({
-        type: 'postgres',
-        ...apiConfigService.getPostgresConnection(),
-        entities: [IndexerData],
-        keepConnectionAlive: true,
-        synchronize: true,
-      }),
-      inject: [ApiConfigService],
-    }),
-    TypeOrmModule.forFeature([IndexerData], 'indexer'),
   ],
-  exports: [
-    TypeOrmModule.forFeature([User]),
-    TypeOrmModule.forFeature([IndexerData]),
-  ],
+  exports: [TypeOrmModule.forFeature([User])],
 })
 export class DatabaseModule {}

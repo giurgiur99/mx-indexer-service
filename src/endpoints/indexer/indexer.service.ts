@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-
-import { TransactionLog } from './entities';
 import { IndexerInterface } from './indexer.interface';
 import { XexchangeIndexer } from './implementations/xexchange.indexer';
 import { PostgresIndexerService } from './postgres/postgres.indexer.service';
@@ -12,10 +10,6 @@ export class IndexerService {
     private readonly postgresIndexerService: PostgresIndexerService,
     private readonly elasticIndexerService: ElasticIndexerService,
   ) {}
-
-  async getTransactionLogs(hashes: string[]): Promise<TransactionLog[]> {
-    return await this.postgresIndexerService.getTransactionLogs(hashes);
-  }
 
   getIndexer(name: string): IndexerInterface | undefined {
     switch (name) {
@@ -29,9 +23,9 @@ export class IndexerService {
   async indexInterval(_start: Date, _end: Date, _indexer: IndexerInterface) {
     // TODO:
     // - delete from the database all rows for the given indexer
-    // await this.postgresIndexerService.clear();
+    await this.postgresIndexerService.clear();
     // - fetch all logs between start and end emitted by the given contracts using elastisearch
-    await this.elasticIndexerService.getTransactionLogs([]);
+    return await this.elasticIndexerService.getTransactionLogs([]);
     // const queries: AbstractQuery | AbstractQuery[] = [];
     // // for (const hash of hashes) {
     // //   queries.push(QueryType.Match('_id', hash));
