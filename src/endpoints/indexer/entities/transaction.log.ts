@@ -1,15 +1,12 @@
 export interface TransactionLog {
-  id: string;
-  originalTxHash: string;
-  address: string;
-  events: TransactionLogEvent[];
-  timestamp: number;
-}
-
-export interface TransactionLogEvent {
-  address: string;
-  identifier: string;
-  topics: string[];
-  data?: string;
-  order: number;
+  txHash: string;
+  value: string;
+  receiver: string;
+  sender: string;
+  gasUsed: string;
+  fee: string;
+  initialPaidFee: string;
+  timestamp: string;
+  tokens: [];
+  function: string;
 }

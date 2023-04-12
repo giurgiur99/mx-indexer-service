@@ -23,7 +23,7 @@ export class IndexerController {
   }
 
   @Get(':name/start')
-  startIndexing(
+  async startIndexing(
     @Query('endDate') endDate: Date,
     @Query('startDate') startDate: Date,
     @Param('name') name: string,
@@ -31,7 +31,11 @@ export class IndexerController {
     try {
       const indexer = this.indexerService.getIndexer(name);
       if (!indexer) return new NotFoundException('Indexer not found');
-      return this.indexerService.indexInterval(startDate, endDate, indexer);
+      return await this.indexerService.indexInterval(
+        startDate,
+        endDate,
+        indexer,
+      );
     } catch (e) {
       return e;
     }

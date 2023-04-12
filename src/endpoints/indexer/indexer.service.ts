@@ -3,6 +3,7 @@ import { IndexerInterface } from './indexer.interface';
 import { XexchangeIndexer } from './implementations/xexchange.indexer';
 import { PostgresIndexerService } from './postgres/postgres.indexer.service';
 import { ElasticIndexerService } from './elastic/elastic.indexer.service';
+import { TransactionLog } from './entities/transaction.log';
 
 @Injectable()
 export class IndexerService {
@@ -25,22 +26,37 @@ export class IndexerService {
     // - delete from the database all rows for the given indexer
     await this.postgresIndexerService.clear();
     // - fetch all logs between start and end emitted by the given contracts using elastisearch
-    return await this.elasticIndexerService.getTransactionLogs([]);
-    // const queries: AbstractQuery | AbstractQuery[] = [];
-    // // for (const hash of hashes) {
-    // //   queries.push(QueryType.Match('_id', hash));
-    // // }
-    //
-    // const elasticQueryLogs = ElasticQuery.create()
-    //   .withPagination({ from: 0, size: 10000 })
-    //   .withCondition(QueryConditionOptions.should, queries);
-    //
-    // const logs = await this.elasticService.getList(
-    //   'logs',
-    //   'id',
-    //   elasticQueryLogs,
-    // );
-    // console.log(logs);
+    const logsSwapTokensFixedInput =
+      await this.elasticIndexerService.getSwapTokenLogs(
+        _start,
+        _end,
+        'swapTokensFixedInput',
+      );
+
+    const logsSwapTokensFixedOutput =
+      await this.elasticIndexerService.getSwapTokenLogs(
+        _start,
+        _end,
+        'swapTokensFixedOutput',
+      );
+
+    const transactionsSwapTokensFixedInput: TransactionLog[] =
+      await this.elasticIndexerService.getTransactions(
+        _start,
+        _end,
+        'swapTokensFixedInput',
+      );
+
+    const transactionsSwapTokensFixedOutput: TransactionLog[] =
+      await this.elasticIndexerService.getTransactions(
+        _start,
+        _end,
+        'swapTokensFixedOutput',
+      );
+
+    // match logsSwapTokensFixedInput with logsSwapTokensFixedOutput based on address
+
+    // - decode the logs
     //   - use can use ElasticService for this
     // - call getPairChange that should decode the swapTokensFixedInput & swapTokensFixedOutput events for now
     // - insert the results in the database
@@ -53,5 +69,12 @@ export class IndexerService {
     //     - timestamp: number
     // decoding address: (AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM=)
     // AddressUtils.bech32Encode(BinaryUtils.base64ToHex('AAAAAAAAAAAFAAa0axUJHXMOXzuMh8PpyKXYGMe6VIM='))
+
+    return {
+      transactionsSwapTokensFixedInput,
+      transactionsSwapTokensFixedOutput,
+      swapFixedInput: logsSwapTokensFixedInput,
+      swapFixedOutput: logsSwapTokensFixedOutput,
+    };
   }
 }

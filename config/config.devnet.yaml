@@ -5,7 +5,7 @@ urls:
     - 'https://testnet-microservice.multiversx.com'
     - 'https://microservice.multiversx.com'
   elastic:
-    - 'https://devnet-index.multiversx.com'
+    - 'https://index.multiversx.com'
   gateway:
     - 'https://devnet-gateway.multiversx.com'
   redis: '127.0.0.1'
