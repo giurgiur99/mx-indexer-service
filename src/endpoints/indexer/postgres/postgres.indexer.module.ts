@@ -18,13 +18,6 @@ import { Repository } from 'typeorm';
           keepConnectionAlive: true,
           synchronize: false,
           retryAttempts: 300,
-          ssl: true,
-          extra: {
-            connectionLimit: 4,
-            ssl: {
-              rejectUnauthorized: false,
-            },
-          },
         };
 
         return options;

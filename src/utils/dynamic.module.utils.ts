@@ -1,18 +1,31 @@
-import { ElasticModule, ElasticModuleOptions, CachingModule, CachingModuleOptions, ApiModule, ApiModuleOptions, ERDNEST_CONFIG_SERVICE } from "@multiversx/sdk-nestjs";
-import { DynamicModule, Provider } from "@nestjs/common";
-import { ClientOptions, ClientProxyFactory, Transport } from "@nestjs/microservices";
-import { ApiConfigModule } from "src/common/api-config/api.config.module";
-import { ApiConfigService } from "src/common/api-config/api.config.service";
-import { SdkNestjsConfigServiceImpl } from "src/common/api-config/sdk.nestjs.config.service.impl";
+import {
+  ElasticModule,
+  ElasticModuleOptions,
+  CachingModule,
+  CachingModuleOptions,
+  ApiModule,
+  ApiModuleOptions,
+  ERDNEST_CONFIG_SERVICE,
+} from '@multiversx/sdk-nestjs';
+import { DynamicModule, Provider } from '@nestjs/common';
+import {
+  ClientOptions,
+  ClientProxyFactory,
+  Transport,
+} from '@nestjs/microservices';
+import { ApiConfigModule } from 'src/common/api-config/api.config.module';
+import { ApiConfigService } from 'src/common/api-config/api.config.service';
+import { SdkNestjsConfigServiceImpl } from 'src/common/api-config/sdk.nestjs.config.service.impl';
 
 export class DynamicModuleUtils {
   static getElasticModule(): DynamicModule {
     return ElasticModule.forRootAsync({
       imports: [ApiConfigModule],
-      useFactory: (apiConfigService: ApiConfigService) => new ElasticModuleOptions({
-        url: apiConfigService.getElasticUrl(),
-        customValuePrefix: 'api',
-      }),
+      useFactory: (apiConfigService: ApiConfigService) =>
+        new ElasticModuleOptions({
+          url: apiConfigService.getElasticUrl(),
+          customValuePrefix: 'api',
+        }),
       inject: [ApiConfigService],
     });
   }
@@ -20,11 +33,12 @@ export class DynamicModuleUtils {
   static getCachingModule(): DynamicModule {
     return CachingModule.forRootAsync({
       imports: [ApiConfigModule],
-      useFactory: (apiConfigService: ApiConfigService) => new CachingModuleOptions({
-        url: apiConfigService.getRedisUrl(),
-        poolLimit: apiConfigService.getPoolLimit(),
-        processTtl: apiConfigService.getProcessTtl(),
-      }),
+      useFactory: (apiConfigService: ApiConfigService) =>
+        new CachingModuleOptions({
+          url: apiConfigService.getRedisUrl(),
+          poolLimit: apiConfigService.getPoolLimit(),
+          processTtl: apiConfigService.getProcessTtl(),
+        }),
       inject: [ApiConfigService],
     });
   }
@@ -32,12 +46,13 @@ export class DynamicModuleUtils {
   static getApiModule(): DynamicModule {
     return ApiModule.forRootAsync({
       imports: [ApiConfigModule],
-      useFactory: (apiConfigService: ApiConfigService) => new ApiModuleOptions({
-        axiosTimeout: apiConfigService.getAxiosTimeout(),
-        rateLimiterSecret: apiConfigService.getRateLimiterSecret(),
-        serverTimeout: apiConfigService.getServerTimeout(),
-        useKeepAliveAgent: apiConfigService.getUseKeepAliveAgentFlag(),
-      }),
+      useFactory: (apiConfigService: ApiConfigService) =>
+        new ApiModuleOptions({
+          axiosTimeout: apiConfigService.getAxiosTimeout(),
+          rateLimiterSecret: apiConfigService.getRateLimiterSecret(),
+          serverTimeout: apiConfigService.getServerTimeout(),
+          useKeepAliveAgent: apiConfigService.getUseKeepAliveAgentFlag(),
+        }),
       inject: [ApiConfigService],
     });
   }

@@ -1,4 +1,12 @@
-import { Controller, forwardRef, Get, Inject, Post } from '@nestjs/common';
+import {
+  Controller,
+  forwardRef,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { IndexerService } from './indexer.service';
 // import { IndexerService } from './indexer.service';
 
@@ -14,14 +22,16 @@ export class IndexerController {
     return 'Indexer';
   }
 
-  @Post(':name/start')
-  startIndexing() {
-    // @Query('endDate') endDate: Date, // @Query('startDate') startDate: Date, // @Param('name') name: string,
+  @Get(':name/start')
+  startIndexing(
+    @Query('endDate') endDate: Date,
+    @Query('startDate') startDate: Date,
+    @Param('name') name: string,
+  ) {
     try {
-      const indexer = this.indexerService.getIndexer('xexchange');
-      return indexer?.getName();
-      // if (!indexer) return new NotFoundException('Indexer not found');
-      // return this.indexerService.indexInterval(startDate, endDate, indexer);
+      const indexer = this.indexerService.getIndexer(name);
+      if (!indexer) return new NotFoundException('Indexer not found');
+      return this.indexerService.indexInterval(startDate, endDate, indexer);
     } catch (e) {
       return e;
     }

@@ -4,13 +4,17 @@ import { TransactionLog } from './entities';
 import { IndexerInterface } from './indexer.interface';
 import { XexchangeIndexer } from './implementations/xexchange.indexer';
 import { PostgresIndexerService } from './postgres/postgres.indexer.service';
+import { ElasticIndexerService } from './elastic/elastic.indexer.service';
 
 @Injectable()
 export class IndexerService {
-  constructor(private readonly indexerPostgres: PostgresIndexerService) {}
+  constructor(
+    private readonly postgresIndexerService: PostgresIndexerService,
+    private readonly elasticIndexerService: ElasticIndexerService,
+  ) {}
 
   async getTransactionLogs(hashes: string[]): Promise<TransactionLog[]> {
-    return await this.indexerPostgres.getTransactionLogs(hashes);
+    return await this.postgresIndexerService.getTransactionLogs(hashes);
   }
 
   getIndexer(name: string): IndexerInterface | undefined {
@@ -22,16 +26,12 @@ export class IndexerService {
     return undefined;
   }
 
-  async indexInterval(
-    _start: Date,
-    _end: Date,
-    _indexer: IndexerInterface,
-  ): Promise<void> {
+  async indexInterval(_start: Date, _end: Date, _indexer: IndexerInterface) {
     // TODO:
     // - delete from the database all rows for the given indexer
-    // await this.indexerDataRepository.clear();
+    // await this.postgresIndexerService.clear();
     // - fetch all logs between start and end emitted by the given contracts using elastisearch
-    // await this.elasticService.get('logs');
+    await this.elasticIndexerService.getTransactionLogs([]);
     // const queries: AbstractQuery | AbstractQuery[] = [];
     // // for (const hash of hashes) {
     // //   queries.push(QueryType.Match('_id', hash));
