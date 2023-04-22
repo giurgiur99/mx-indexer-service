@@ -1,84 +1,78 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   AddressUtils,
+  BinaryUtils,
   ElasticQuery,
   ElasticService,
   ElasticSortOrder,
   ElasticSortProperty,
+  QueryType,
 } from '@multiversx/sdk-nestjs';
 
 @Injectable()
 export class ElasticIndexerService {
   constructor(private readonly elasticService: ElasticService) {}
 
-  async getSwapTokenLogs(
-    _start: Date,
-    _end: Date,
-    key: string,
-  ): Promise<any[]> {
+  async getSwapTokenLogs(_start: Date, _end: Date): Promise<any[]> {
     const sortOrder: ElasticSortOrder = ElasticSortOrder.descending;
+
+    const nonce: ElasticSortProperty = { name: 'timestamp', order: sortOrder };
+    const startDate = new Date(_start).getTime();
+    const endDate = new Date(_end).getTime();
 
     const timestamp: ElasticSortProperty = {
       name: 'timestamp',
       order: sortOrder,
     };
-    const nonce: ElasticSortProperty = { name: 'timestamp', order: sortOrder };
-    const startDate = new Date(_start).getTime();
-    const endDate = new Date(_end).getTime();
+
+    const matchSwapTokens = [
+      QueryType.Should([
+        QueryType.Nested('events', {
+          'events.identifier': 'swapTokensFixedInput',
+        }),
+        QueryType.Nested('events', {
+          'events.identifier': 'swapTokensFixedOutput',
+        }),
+      ]),
+    ];
+
+    const key = 'swapTokensFixedInput';
 
     const elasticQuery = ElasticQuery.create()
       .withPagination({
         from: 0,
-        size: 10,
+        size: 5,
       })
       .withSort([timestamp, nonce])
+      .withMustCondition(matchSwapTokens)
       .withDateRangeFilter('timestamp', startDate, endDate);
 
     return await this.elasticService.getList('logs', key, elasticQuery);
   }
 
-  async decodeLogs(address: string) {
-    const isAddressValid = AddressUtils.isAddressValid(address);
-    if (!isAddressValid) {
-      return new NotFoundException('Address is not valid');
+  async topicDecoder(identifier: string, topics: string[]): Promise<any> {
+    console.log(topics);
+    switch (identifier) {
+      case 'swapTokensFixedOutput':
+      case 'swapTokensFixedInput':
+        return {
+          action: BinaryUtils.base64Decode(topics[0]),
+          tokenIn: BinaryUtils.base64Decode(topics[1]),
+          tokenOut: BinaryUtils.base64Decode(topics[2]),
+          address: AddressUtils.bech32Encode(
+            BinaryUtils.base64ToHex(topics[3]),
+          ),
+        };
+      case 'ESDTTransfer':
+        return {
+          token: BinaryUtils.base64Decode(topics[0]),
+          amount: parseInt(BinaryUtils.base64ToBigInt(topics[2]).toString()),
+          address: AddressUtils.bech32Encode(
+            BinaryUtils.base64ToHex(topics[3]),
+          ),
+        };
+      default:
+        return topics;
     }
-    return isAddressValid;
-  }
-
-  async getTransactions(_start: Date, _end: Date, key: string): Promise<any[]> {
-    const sortOrder: ElasticSortOrder = ElasticSortOrder.descending;
-    const startDate = new Date(_start).getTime();
-    const endDate = new Date(_end).getTime();
-
-    const timestamp: ElasticSortProperty = {
-      name: 'timestamp',
-      order: sortOrder,
-    };
-    const nonce: ElasticSortProperty = { name: 'timestamp', order: sortOrder };
-
-    const elasticQuery = ElasticQuery.create()
-      .withMustMatchCondition('function', key)
-      .withSort([timestamp, nonce])
-      .withDateRangeFilter('timestamp', startDate, endDate)
-      .withPagination({ from: 0, size: 5 });
-
-    const logs = await this.elasticService.getList(
-      'transactions',
-      'txHash',
-      elasticQuery,
-    );
-
-    return logs.map((log) => ({
-      txHash: log.txHash,
-      value: log.value,
-      receiver: log.receiver,
-      sender: log.sender,
-      gasUsed: log.gasUsed,
-      fee: log.fee,
-      initialPaidFee: log.initialPaidFee,
-      timestamp: log.timestamp,
-      tokens: log.tokens,
-      function: log.function,
-    }));
   }
 }
