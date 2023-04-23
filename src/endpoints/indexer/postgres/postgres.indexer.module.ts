@@ -3,7 +3,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ApiConfigModule } from 'src/common/api-config/api.config.module';
 import { ApiConfigService } from 'src/common/api-config/api.config.service';
 import { PostgresIndexerService } from './postgres.indexer.service';
-import { IndexerData } from '../entities/indexer.data.entity';
+import { IndexerData } from './entities/indexer.data.entity';
 
 @Module({
   imports: [

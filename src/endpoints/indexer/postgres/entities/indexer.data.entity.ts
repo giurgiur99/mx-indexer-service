@@ -6,9 +6,6 @@ export class IndexerData {
   id?: number;
 
   @Column()
-  pairId?: string;
-
-  @Column()
   address?: string;
 
   @Column()
@@ -19,6 +16,12 @@ export class IndexerData {
 
   @Column()
   volume?: number;
+
+  @Column()
+  fee?: number;
+
+  @Column({ type: 'timestamp' })
+  timestamp?: Date;
 
   @Column()
   provider?: string;

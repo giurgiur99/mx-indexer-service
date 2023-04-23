@@ -26,6 +26,7 @@ export class IndexerController {
   async startIndexing(
     @Query('endDate') endDate: Date,
     @Query('startDate') startDate: Date,
+    @Query('hash') hash: string,
     @Param('name') name: string,
   ) {
     try {
@@ -35,6 +36,7 @@ export class IndexerController {
         startDate,
         endDate,
         indexer,
+        hash,
       );
     } catch (e) {
       return e;
