@@ -6,6 +6,7 @@ import {
   ElasticService,
   ElasticSortOrder,
   ElasticSortProperty,
+  QueryConditionOptions,
   QueryType,
 } from '@multiversx/sdk-nestjs';
 
@@ -13,11 +14,20 @@ import {
 export class ElasticIndexerService {
   constructor(private readonly elasticService: ElasticService) {}
 
-  async getSwapTokenLogs(
-    _start: Date,
-    _end: Date,
-    hash?: string,
-  ): Promise<any[]> {
+  async getSwapTokenLogByHash(hash: string): Promise<any[]> {
+    const elasticQueryLogs = ElasticQuery.create().withCondition(
+      QueryConditionOptions.must,
+      QueryType.Match('_id', hash),
+    );
+    const result = await this.elasticService.getList(
+      'logs',
+      'id',
+      elasticQueryLogs,
+    );
+    return result;
+  }
+
+  async getSwapTokenLogs(_start: Date, _end: Date): Promise<any[]> {
     const sortOrder: ElasticSortOrder = ElasticSortOrder.descending;
 
     const nonce: ElasticSortProperty = { name: 'timestamp', order: sortOrder };
@@ -28,11 +38,6 @@ export class ElasticIndexerService {
       name: 'timestamp',
       order: sortOrder,
     };
-
-    if (hash) {
-      console.log(`hash:${hash}`);
-      return await this.elasticService.getItem('logs', 'id', hash);
-    }
 
     const matchSwapTokens = [
       QueryType.Should([

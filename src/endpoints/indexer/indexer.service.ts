@@ -31,13 +31,21 @@ export class IndexerService {
     await this.postgresIndexerService.clear();
     // - fetch all logs between start and end emitted by the given contracts using elastisearch
     // - search by events.identifier nested query and look for swapTokensFixedInput & swapTokensFixedOutput
-    const logsSwapToken = await this.elasticIndexerService.getSwapTokenLogs(
-      _start,
-      _end,
-      hash,
-    );
 
-    const logsEvents = logsSwapToken.map((log) => log.events);
+    let logsEvents: any;
+
+    if (hash) {
+      const logsSwapToken =
+        await this.elasticIndexerService.getSwapTokenLogByHash(hash);
+      logsEvents = [logsSwapToken[0].events];
+    } else {
+      const logsSwapToken = await this.elasticIndexerService.getSwapTokenLogs(
+        _start,
+        _end,
+      );
+
+      logsEvents = logsSwapToken.map((log) => log.events);
+    }
 
     const decodedEvents = await Promise.all(
       logsEvents
@@ -89,7 +97,7 @@ export class IndexerService {
     return {
       indexerDataEntry,
       decodedEvents,
-      raw: logsSwapToken,
+      logsEvents,
     };
   }
 

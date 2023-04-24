@@ -39,6 +39,7 @@ export class IndexerController {
         hash,
       );
     } catch (e) {
+      console.log(e);
       return e;
     }
   }
