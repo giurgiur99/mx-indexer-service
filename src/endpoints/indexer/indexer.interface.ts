@@ -8,4 +8,6 @@ export interface IndexerInterface {
   getPairs(): Promise<string[]>;
 
   getPairChange(event: any): Promise<PairChange[]>;
+
+  startIndexing(_start: Date, _end: Date, hash?: string): Promise<any>;
 }

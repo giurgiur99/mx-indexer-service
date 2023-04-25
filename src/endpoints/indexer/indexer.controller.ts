@@ -35,7 +35,7 @@ export class IndexerController {
       return await this.indexerService.indexInterval(
         startDate,
         endDate,
-        indexer,
+        name,
         hash,
       );
     } catch (e) {

@@ -19,12 +19,7 @@ export class ElasticIndexerService {
       QueryConditionOptions.must,
       QueryType.Match('_id', hash),
     );
-    const result = await this.elasticService.getList(
-      'logs',
-      'id',
-      elasticQueryLogs,
-    );
-    return result;
+    return await this.elasticService.getList('logs', 'id', elasticQueryLogs);
   }
 
   async getSwapTokenLogs(_start: Date, _end: Date): Promise<any[]> {
@@ -55,7 +50,7 @@ export class ElasticIndexerService {
     const elasticQuery = ElasticQuery.create()
       .withPagination({
         from: 0,
-        size: 1,
+        size: 5,
       })
       .withSort([timestamp, nonce])
       .withMustCondition(matchSwapTokens)
@@ -64,7 +59,7 @@ export class ElasticIndexerService {
     return await this.elasticService.getList('logs', key, elasticQuery);
   }
 
-  async topicDecoder(identifier: string, topics: string[]): Promise<any> {
+  topicDecoder(identifier: string, topics: string[]): any {
     switch (identifier) {
       case 'swapTokensFixedOutput':
       case 'swapTokensFixedInput':

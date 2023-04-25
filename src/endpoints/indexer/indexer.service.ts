@@ -14,7 +14,10 @@ export class IndexerService {
   getIndexer(name: string): IndexerInterface | undefined {
     switch (name) {
       case 'xexchange':
-        return new XexchangeIndexer();
+        return new XexchangeIndexer(
+          this.postgresIndexerService,
+          this.elasticIndexerService,
+        );
     }
 
     return undefined;
@@ -23,54 +26,18 @@ export class IndexerService {
   async indexInterval(
     _start: Date,
     _end: Date,
-    _indexer: IndexerInterface,
+    indexerName: string,
     hash?: string,
   ) {
+    const indexer = this.getIndexer(indexerName);
+    if (!indexer) {
+      throw new Error(`Indexer ${indexerName} not found`);
+    }
+    const data = await indexer.startIndexing(_start, _end, hash);
     // TODO:
     // - delete from the database all rows for the given indexer
-    await this.postgresIndexerService.clear();
     // - fetch all logs between start and end emitted by the given contracts using elastisearch
     // - search by events.identifier nested query and look for swapTokensFixedInput & swapTokensFixedOutput
-
-    let logsEvents: any;
-
-    if (hash) {
-      const logsSwapToken =
-        await this.elasticIndexerService.getSwapTokenLogByHash(hash);
-      logsEvents = [logsSwapToken[0].events];
-    } else {
-      const logsSwapToken = await this.elasticIndexerService.getSwapTokenLogs(
-        _start,
-        _end,
-      );
-
-      logsEvents = logsSwapToken.map((log) => log.events);
-    }
-
-    const decodedEvents = await Promise.all(
-      logsEvents
-        .flat()
-        .map(
-          async (event: {
-            identifier: string;
-            address: string;
-            topics: string[];
-          }) => {
-            return {
-              identifier: event.identifier,
-              address: event.address,
-              topics: await this.elasticIndexerService.topicDecoder(
-                event.identifier,
-                event.topics,
-              ),
-            };
-          },
-        ),
-    );
-
-    const indexerDataEntry = await this.calculateIndexerDataEntry(
-      decodedEvents,
-    );
 
     // Decode data logs and tokens used?
     // Volume?
@@ -95,49 +62,8 @@ export class IndexerService {
     //     - timestamp: number
 
     return {
-      indexerDataEntry,
-      decodedEvents,
-      logsEvents,
-    };
-  }
-
-  async calculateIndexerDataEntry(decodedEvents: any) {
-    const [feesCollectorAddress, MEXWEGLDPoolAddress] = [
-      'erd1qqqqqqqqqqqqqpgqjsnxqprks7qxfwkcg2m2v9hxkrchgm9akp2segrswt',
-      'erd1qqqqqqqqqqqqqpgqa0fsfshnff4n76jhcye6k7uvd7qacsq42jpsp6shh2',
-    ];
-    const swapTokensEvent = decodedEvents.find(
-      (event: any) =>
-        event.identifier === 'swapTokensFixedInput' ||
-        event.identifier === 'swapTokensFixedOutput',
-    );
-
-    const pair =
-      swapTokensEvent.topics.tokenIn + '/' + swapTokensEvent.topics.tokenOut;
-
-    const ESDTTransferEvents = decodedEvents.filter(
-      (event: any) => event.identifier === 'ESDTTransfer',
-    );
-
-    const ESDTLocalBurn = decodedEvents.find(
-      (event: any) => event.identifier === 'ESDTLocalBurn',
-    ).topics.amount;
-
-    const fees = decodedEvents.find(
-      (event: any) => event.topics.address === feesCollectorAddress,
-    ).topics.amount;
-
-    const WEGLDVolume = decodedEvents.find(
-      (event: any) => event.topics.address === MEXWEGLDPoolAddress,
-    ).topics.amount;
-
-    return {
-      address: ESDTTransferEvents[0].address,
-      pair,
-      WEGLDVolume,
-      ESDTLocalBurn,
-      fees,
-      ESDTTransferEvents,
+      data,
+      done: true,
     };
   }
 }

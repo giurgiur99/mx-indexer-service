@@ -20,6 +20,9 @@ export class IndexerData {
   @Column()
   fee?: number;
 
+  @Column()
+  burn?: number;
+
   @Column({ type: 'timestamp' })
   timestamp?: Date;
 
