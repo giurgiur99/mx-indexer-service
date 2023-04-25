@@ -1,8 +1,8 @@
 import { PairChange } from '../entities/pair.change';
 import { IndexerInterface } from '../indexer.interface';
 import { IndexerData } from '../postgres/entities/indexer.data.entity';
-import { PostgresIndexerService } from '../postgres/postgres.indexer.service';
 import { ElasticIndexerService } from '../elastic/elastic.indexer.service';
+import { PostgresIndexerService } from '../postgres/postgres.indexer.service';
 
 export class XexchangeIndexer implements IndexerInterface {
   constructor(
@@ -34,7 +34,7 @@ export class XexchangeIndexer implements IndexerInterface {
   }
 
   async startIndexing(_start: Date, _end: Date, hash?: string): Promise<any> {
-    await this.postgresIndexerService.clear();
+    // await this.postgresIndexerService.clear();
 
     let logsEvents: any;
     let logsSwapToken: any | any[];
@@ -66,10 +66,11 @@ export class XexchangeIndexer implements IndexerInterface {
     );
 
     const indexerEntries: IndexerData[] = [];
-    decodedEvents.forEach((event: any) => {
+    for (const event of decodedEvents) {
       const indexerDataEntry = this.calculateIndexerDataEntry(event);
       indexerEntries.push(indexerDataEntry);
-    });
+      await this.postgresIndexerService.addIndexerData(indexerDataEntry);
+    }
 
     return {
       indexerEntries: indexerEntries,
@@ -80,9 +81,8 @@ export class XexchangeIndexer implements IndexerInterface {
   }
 
   calculateIndexerDataEntry(decodedEvents: any): IndexerData {
-    const [feesCollectorAddress] = [
-      'erd1qqqqqqqqqqqqqpgqjsnxqprks7qxfwkcg2m2v9hxkrchgm9akp2segrswt',
-    ];
+    const feesCollectorAddress =
+      'erd1qqqqqqqqqqqqqpgqjsnxqprks7qxfwkcg2m2v9hxkrchgm9akp2segrswt';
 
     const swapTokensEvent = decodedEvents.find(
       (event: any) =>
@@ -96,22 +96,24 @@ export class XexchangeIndexer implements IndexerInterface {
 
     const ESDTLocalBurn = decodedEvents.find(
       (event: any) => event.identifier === 'ESDTLocalBurn',
-    ).topics.amount;
+    )?.topics.amount;
 
     const fees = decodedEvents.find(
       (event: any) => event.topics.address === feesCollectorAddress,
-    ).topics.amount;
+    )?.topics.amount;
 
     const WEGLDVolume = decodedEvents.find(
       (event: any) => event.topics.address === ownerAddress,
-    ).topics.amount;
+    )?.topics.amount;
 
     return {
-      address: swapTokensEvent.topics.address,
+      address: swapTokensEvent.address,
       pair,
       volume: Number(WEGLDVolume),
       burn: Number(ESDTLocalBurn),
       fee: Number(fees),
+      timestamp: new Date(),
+      provider: 'xexchange',
     };
   }
 }

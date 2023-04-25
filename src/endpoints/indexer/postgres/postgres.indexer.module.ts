@@ -16,6 +16,7 @@ import { IndexerData } from './entities/indexer.data.entity';
           ...apiConfigService.getPostgresConnection(),
           entities: [IndexerData],
           keepConnectionAlive: true,
+          migrationsRun: false,
           synchronize: false,
           retryAttempts: 300,
         };

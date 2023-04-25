@@ -13,4 +13,8 @@ export class PostgresIndexerService {
   async clear(): Promise<void> {
     return await this.indexerData.clear();
   }
+
+  async addIndexerData(data: IndexerData): Promise<IndexerData> {
+    return await this.indexerData.save(data);
+  }
 }

@@ -33,6 +33,8 @@ export class IndexerService {
     if (!indexer) {
       throw new Error(`Indexer ${indexerName} not found`);
     }
+
+    // await this.postgresIndexerService.clear();
     const data = await indexer.startIndexing(_start, _end, hash);
     // TODO:
     // - delete from the database all rows for the given indexer

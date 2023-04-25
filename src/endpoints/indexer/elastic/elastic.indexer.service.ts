@@ -50,7 +50,7 @@ export class ElasticIndexerService {
     const elasticQuery = ElasticQuery.create()
       .withPagination({
         from: 0,
-        size: 5,
+        size: 10,
       })
       .withSort([timestamp, nonce])
       .withMustCondition(matchSwapTokens)
