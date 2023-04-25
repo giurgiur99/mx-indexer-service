@@ -50,7 +50,7 @@ export class ElasticIndexerService {
     const elasticQuery = ElasticQuery.create()
       .withPagination({
         from: 0,
-        size: 10,
+        size: 2,
       })
       .withSort([timestamp, nonce])
       .withMustCondition(matchSwapTokens)
@@ -59,7 +59,7 @@ export class ElasticIndexerService {
     return await this.elasticService.getList('logs', key, elasticQuery);
   }
 
-  topicDecoder(identifier: string, topics: string[]): any {
+  topicDecoder(identifier: string, topics: string[]): SmartContractData {
     switch (identifier) {
       case 'swapTokensFixedOutput':
       case 'swapTokensFixedInput':
