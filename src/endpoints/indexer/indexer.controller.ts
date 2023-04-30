@@ -24,36 +24,40 @@ export class IndexerController {
 
   @Get(':name/start')
   async startIndexing(
-    @Query('endDate') endDate: Date,
-    @Query('startDate') startDate: Date,
+    @Query('before') before: number,
+    @Query('after') after: number,
     @Query('hash') hash: string,
     @Param('name') name: string,
+    @Query('from') from: number,
+    @Query('size') size: number,
   ) {
     try {
       const indexer = this.indexerService.getIndexer(name);
       if (!indexer) return new NotFoundException('Indexer not found');
       return await this.indexerService.indexInterval(
-        startDate,
-        endDate,
+        before,
+        after,
         name,
         hash,
+        from,
+        size,
       );
     } catch (e) {
       console.log(e);
       return e;
     }
   }
-  //
-  // @Get(':name/pairs')
-  // async getPairs(@Param('name') name: string): Promise<String[]> {
-  //   const indexer = this.indexerService.getIndexer(name);
-  //   const result = await indexer?.getPairs();
-  //   if (!result) {
-  //     throw new NotFoundException('No pairs found');
-  //   }
-  //
-  //   return result;
-  // }
+
+  @Get(':name/pairs')
+  async getPairs(@Param('name') name: string): Promise<(string | undefined)[]> {
+    const indexer = this.indexerService.getIndexer(name);
+    const result = await indexer?.getPairs();
+    if (!result) {
+      throw new NotFoundException('No pairs found');
+    }
+
+    return result;
+  }
   //
   // @Get(':name/contracts')
   // async getContracts(@Param('name') name: string): Promise<any> {

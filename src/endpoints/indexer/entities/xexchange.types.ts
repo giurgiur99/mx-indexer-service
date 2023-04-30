@@ -2,6 +2,7 @@ interface LogSwapToken {
   swapTokensFixedInput?: string;
   id?: string;
   events: SmartContractEvent[];
+  timestamp?: string;
 }
 
 interface SmartContractEvent {
@@ -10,6 +11,7 @@ interface SmartContractEvent {
   data?: string;
   topics: string[];
   order?: number;
+  timestamp?: string;
 }
 
 interface SmartContractDecodedEvent {
@@ -18,6 +20,8 @@ interface SmartContractDecodedEvent {
   data?: string;
   topics: SmartContractData;
   order?: number;
+  timestamp?: string;
+  hash?: string;
 }
 
 interface SmartContractData {

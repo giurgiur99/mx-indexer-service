@@ -24,18 +24,32 @@ export class IndexerService {
   }
 
   async indexInterval(
-    _start: Date,
-    _end: Date,
+    before: number,
+    after: number,
     indexerName: string,
     hash?: string,
+    from?: number,
+    size?: number,
   ) {
     const indexer = this.getIndexer(indexerName);
     if (!indexer) {
       throw new Error(`Indexer ${indexerName} not found`);
     }
 
-    // await this.postgresIndexerService.clear();
-    const data = await indexer.startIndexing(_start, _end, hash);
+    const countLogs = await this.elasticIndexerService.getSwapTokenLogsCount(
+      after,
+      before,
+    );
+
+    let results: any[] = [];
+
+    if (from && size) {
+      for (let i = from; i < countLogs; i += size) {
+        const data = await indexer.startIndexing(before, after, hash, i, size);
+        results.push(data);
+      }
+    }
+
     // TODO:
     // - delete from the database all rows for the given indexer
     // - fetch all logs between start and end emitted by the given contracts using elastisearch
@@ -64,7 +78,8 @@ export class IndexerService {
     //     - timestamp: number
 
     return {
-      data,
+      countLogs,
+      results,
       done: true,
     };
   }

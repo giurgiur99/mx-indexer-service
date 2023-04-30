@@ -5,9 +5,15 @@ export interface IndexerInterface {
 
   getContracts(): Promise<string[]>;
 
-  getPairs(): Promise<string[]>;
+  getPairs(): Promise<(string | undefined)[]>;
 
   getPairChange(event: any): Promise<PairChange[]>;
 
-  startIndexing(_start: Date, _end: Date, hash?: string): Promise<any>;
+  startIndexing(
+    before: number,
+    after: number,
+    hash?: string,
+    from?: number,
+    size?: number,
+  ): Promise<any>;
 }

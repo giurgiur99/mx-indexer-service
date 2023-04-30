@@ -17,4 +17,9 @@ export class PostgresIndexerService {
   async addIndexerData(data: IndexerData): Promise<IndexerData> {
     return await this.indexerData.save(data);
   }
+
+  async getPairs(): Promise<(string | undefined)[]> {
+    const pairs = await this.indexerData.find();
+    return pairs.map((pair) => pair.pair);
+  }
 }

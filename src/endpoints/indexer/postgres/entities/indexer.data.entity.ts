@@ -9,6 +9,9 @@ export class IndexerData {
   address?: string;
 
   @Column()
+  hash?: string;
+
+  @Column()
   pair?: string;
 
   @Column()
@@ -23,8 +26,8 @@ export class IndexerData {
   @Column()
   burn?: number;
 
-  @Column({ type: 'timestamp' })
-  timestamp?: Date;
+  @Column()
+  timestamp?: string;
 
   @Column()
   provider?: string;

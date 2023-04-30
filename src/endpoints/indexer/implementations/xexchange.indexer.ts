@@ -19,8 +19,8 @@ export class XexchangeIndexer implements IndexerInterface {
   }
 
   // eslint-disable-next-line require-await
-  async getPairs(): Promise<string[]> {
-    return ['WEGLDUSDC'];
+  async getPairs(): Promise<(string | undefined)[]> {
+    return await this.postgresIndexerService.getPairs();
   }
 
   // eslint-disable-next-line require-await
@@ -29,57 +29,81 @@ export class XexchangeIndexer implements IndexerInterface {
     return [];
   }
 
-  async startIndexing(_start: Date, _end: Date, hash?: string): Promise<any> {
-    // await this.postgresIndexerService.clear();
+  async startIndexing(
+    before: number,
+    after: number,
+    hash?: string,
+    from?: number,
+    size?: number,
+  ): Promise<any> {
+    await this.postgresIndexerService.clear();
 
-    let logsEvents: SmartContractEvent[][];
-    let logsSwapToken: LogSwapToken[];
+    //duplicate detector by hash
+    //price
+    // - Ex. Swap 31000 ZPAY for a minimum of 84.22030673074847279 WEGLD
+    // - Divide 31000 by 84.22030673074847279 = 368.1
+    // Fees saved as varchar
+    // Test volumes using https://xexchange.com/analytics by querying the database for days & months ex WAM/EGLD
 
-    if (hash) {
-      logsSwapToken = await this.elasticIndexerService.getSwapTokenLogByHash(
-        hash,
-      );
-      logsEvents = [logsSwapToken[0].events];
+    let logsSwapToken: LogSwapToken[] = [];
+    let data: any[] = [];
+    const isHash = !!hash;
+
+    if (isHash) {
+      data = await this.elasticIndexerService.getSwapTokenLogByHash(hash);
     } else {
-      logsSwapToken = await this.elasticIndexerService.getSwapTokenLogs(
-        _start,
-        _end,
-      );
-      logsEvents = logsSwapToken.map((log) => log.events);
+      data = await new Promise(async (resolve) => {
+        await this.elasticIndexerService.getSwapTokenLogs(
+          async (items) => {
+            const result = items.map((item) => {
+              return item;
+            });
+            resolve(result);
+          },
+          before,
+          after,
+          from,
+          size,
+        );
+      });
     }
 
-    const decodedEvents: SmartContractDecodedEvent[][] = logsEvents.map(
-      (event: SmartContractEvent[]) =>
-        event.map((e: SmartContractEvent) => {
-          return {
-            identifier: e.identifier,
-            address: e.address,
-            topics: this.elasticIndexerService.topicDecoder(
-              e.identifier,
-              e.topics,
-            ),
-          };
-        }),
-    );
+    const decodedEvents = data.map((item) => {
+      const timestamp = item.timestamp ?? '0';
+      const hash = isHash ? item.id : item.swapTokensFixedInput ?? '0';
+      const events = item.events.map((event: SmartContractEvent) => {
+        return {
+          identifier: event.identifier,
+          topics: this.elasticIndexerService.topicDecoder(
+            event.identifier,
+            event.topics,
+          ),
+        };
+      });
+      return { hash, timestamp, events };
+    });
 
     const indexerEntries: IndexerData[] = [];
     for (const event of decodedEvents) {
-      const indexerDataEntry = this.calculateIndexerDataEntry(event);
+      const indexerDataEntry = this.calculateIndexerDataEntry(
+        event.hash,
+        event.events,
+        event.timestamp,
+      );
       indexerEntries.push(indexerDataEntry);
       await this.postgresIndexerService.addIndexerData(indexerDataEntry);
     }
 
     return {
-      // logsSwapToken: logsSwapToken,
-      indexerEntries: indexerEntries,
       decodedEvents: decodedEvents,
-      logsEvents,
-      hash: hash,
+      logsSwapToken: logsSwapToken,
     };
   }
 
   calculateIndexerDataEntry(
+    hash: string,
     decodedEvents: SmartContractDecodedEvent[],
+    timestamp: string,
   ): IndexerData {
     const feesCollectorAddress =
       'erd1qqqqqqqqqqqqqpgqjsnxqprks7qxfwkcg2m2v9hxkrchgm9akp2segrswt';
@@ -110,12 +134,13 @@ export class XexchangeIndexer implements IndexerInterface {
     )?.topics.amount;
 
     return {
-      address: swapTokensEvent?.address,
+      hash,
+      address: ownerAddress,
       pair,
       volume: Number(WEGLDVolume),
       burn: Number(ESDTLocalBurn),
       fee: Number(fees),
-      timestamp: new Date(),
+      timestamp,
       provider: 'xexchange',
     };
   }

@@ -14,7 +14,29 @@ import {
 export class ElasticIndexerService {
   constructor(private readonly elasticService: ElasticService) {}
 
-  async getSwapTokenLogByHash(hash: string): Promise<any[]> {
+  async getSwapTokenLogsCount(after: number, before: number): Promise<number> {
+    const matchSwapTokens = [
+      QueryType.Should([
+        QueryType.Nested('events', {
+          'events.identifier': 'swapTokensFixedInput',
+        }),
+        QueryType.Nested('events', {
+          'events.identifier': 'swapTokensFixedOutput',
+        }),
+      ]),
+    ];
+
+    const elasticQuery =
+      ElasticQuery.create().withMustCondition(matchSwapTokens);
+
+    if (after && before) {
+      elasticQuery.withDateRangeFilter('timestamp', before, after);
+    }
+
+    return await this.elasticService.getCount('logs', elasticQuery);
+  }
+
+  async getSwapTokenLogByHash(hash: string): Promise<LogSwapToken[]> {
     const elasticQueryLogs = ElasticQuery.create().withCondition(
       QueryConditionOptions.must,
       QueryType.Match('_id', hash),
@@ -22,12 +44,16 @@ export class ElasticIndexerService {
     return await this.elasticService.getList('logs', 'id', elasticQueryLogs);
   }
 
-  async getSwapTokenLogs(_start: Date, _end: Date): Promise<any[]> {
+  getSwapTokenLogs(
+    action: (items: LogSwapToken[]) => Promise<void>,
+    before: number,
+    after: number,
+    from?: number,
+    size?: number,
+  ): any {
     const sortOrder: ElasticSortOrder = ElasticSortOrder.descending;
 
     const nonce: ElasticSortProperty = { name: 'timestamp', order: sortOrder };
-    const startDate = new Date(_start).getTime();
-    const endDate = new Date(_end).getTime();
 
     const timestamp: ElasticSortProperty = {
       name: 'timestamp',
@@ -47,16 +73,30 @@ export class ElasticIndexerService {
 
     const key = 'swapTokensFixedInput';
 
-    const elasticQuery = ElasticQuery.create()
-      .withPagination({
-        from: 0,
-        size: 2,
-      })
-      .withSort([timestamp, nonce])
-      .withMustCondition(matchSwapTokens)
-      .withDateRangeFilter('timestamp', startDate, endDate);
+    console.log(new Date(before), new Date(after));
 
-    return await this.elasticService.getList('logs', key, elasticQuery);
+    let elasticQuery = ElasticQuery.create()
+      .withSort([timestamp, nonce])
+      .withMustCondition(matchSwapTokens);
+
+    if (before && after) {
+      elasticQuery.withDateRangeFilter('timestamp', before, after);
+    }
+
+    if (size && from) {
+      console.log('pagination', from, size);
+      elasticQuery = elasticQuery.withPagination({
+        from: 0,
+        size: 10000,
+      });
+    }
+
+    return this.elasticService.getScrollableList(
+      'logs',
+      key,
+      elasticQuery,
+      action,
+    );
   }
 
   topicDecoder(identifier: string, topics: string[]): SmartContractData {
