@@ -45,20 +45,16 @@ export class XexchangeIndexer implements IndexerInterface {
     // Fees saved as varchar
     // Test volumes using https://xexchange.com/analytics by querying the database for days & months ex WAM/EGLD
 
-    let logsSwapToken: LogSwapToken[] = [];
-    let data: any[] = [];
+    let data: LogSwapToken[] = [];
     const isHash = !!hash;
 
     if (isHash) {
       data = await this.elasticIndexerService.getSwapTokenLogByHash(hash);
     } else {
       data = await new Promise(async (resolve) => {
-        await this.elasticIndexerService.getSwapTokenLogs(
+        this.elasticIndexerService.getSwapTokenLogs(
           async (items) => {
-            const result = items.map((item) => {
-              return item;
-            });
-            resolve(result);
+            resolve(items);
           },
           before,
           after,
@@ -73,6 +69,7 @@ export class XexchangeIndexer implements IndexerInterface {
       const hash = isHash ? item.id : item.swapTokensFixedInput ?? '0';
       const events = item.events.map((event: SmartContractEvent) => {
         return {
+          address: event.address,
           identifier: event.identifier,
           topics: this.elasticIndexerService.topicDecoder(
             event.identifier,
@@ -86,24 +83,24 @@ export class XexchangeIndexer implements IndexerInterface {
     const indexerEntries: IndexerData[] = [];
     for (const event of decodedEvents) {
       const indexerDataEntry = this.calculateIndexerDataEntry(
-        event.hash,
         event.events,
         event.timestamp,
+        event.hash,
       );
       indexerEntries.push(indexerDataEntry);
       await this.postgresIndexerService.addIndexerData(indexerDataEntry);
     }
 
     return {
-      decodedEvents: decodedEvents,
-      logsSwapToken: logsSwapToken,
+      indexerEntries: indexerEntries,
+      // logsSwapToken: logsSwapToken,
     };
   }
 
   calculateIndexerDataEntry(
-    hash: string,
     decodedEvents: SmartContractDecodedEvent[],
     timestamp: string,
+    hash?: string,
   ): IndexerData {
     const feesCollectorAddress =
       'erd1qqqqqqqqqqqqqpgqjsnxqprks7qxfwkcg2m2v9hxkrchgm9akp2segrswt';
@@ -116,7 +113,7 @@ export class XexchangeIndexer implements IndexerInterface {
 
     const pair =
       swapTokensEvent?.topics.tokenIn + '/' + swapTokensEvent?.topics.tokenOut;
-    const ownerAddress = swapTokensEvent?.topics.address;
+    const outAddress = swapTokensEvent?.topics.address;
 
     const ESDTLocalBurn = decodedEvents.find(
       (event: SmartContractDecodedEvent) =>
@@ -130,12 +127,13 @@ export class XexchangeIndexer implements IndexerInterface {
 
     const WEGLDVolume = decodedEvents.find(
       (event: SmartContractDecodedEvent) =>
-        event.topics.address === ownerAddress,
+        event.topics.token === 'WEGLD-bd4d79' &&
+        (event.address === outAddress || event.topics.address === outAddress),
     )?.topics.amount;
 
     return {
       hash,
-      address: ownerAddress,
+      address: outAddress,
       pair,
       volume: Number(WEGLDVolume),
       burn: Number(ESDTLocalBurn),

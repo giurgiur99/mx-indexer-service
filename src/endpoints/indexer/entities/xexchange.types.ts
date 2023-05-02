@@ -1,4 +1,5 @@
 interface LogSwapToken {
+  hash: string;
   swapTokensFixedInput?: string;
   id?: string;
   events: SmartContractEvent[];

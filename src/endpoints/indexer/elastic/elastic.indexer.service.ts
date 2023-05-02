@@ -111,6 +111,7 @@ export class ElasticIndexerService {
             BinaryUtils.base64ToHex(topics[3]),
           ),
         };
+      case 'MultiESDTNFTTransfer':
       case 'ESDTTransfer':
         return {
           token: BinaryUtils.base64Decode(topics[0]),

@@ -36,10 +36,9 @@ export class IndexerService {
       throw new Error(`Indexer ${indexerName} not found`);
     }
 
-    const countLogs = await this.elasticIndexerService.getSwapTokenLogsCount(
-      after,
-      before,
-    );
+    const countLogs = hash
+      ? 1
+      : await this.elasticIndexerService.getSwapTokenLogsCount(after, before);
 
     let results: any[] = [];
 
