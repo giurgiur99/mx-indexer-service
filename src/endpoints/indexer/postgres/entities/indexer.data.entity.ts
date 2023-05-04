@@ -15,7 +15,7 @@ export class IndexerData {
   pair?: string;
 
   @Column()
-  price?: string;
+  price?: number;
 
   @Column()
   volume?: number;

@@ -73,8 +73,6 @@ export class ElasticIndexerService {
 
     const key = 'swapTokensFixedInput';
 
-    console.log(new Date(before), new Date(after));
-
     let elasticQuery = ElasticQuery.create()
       .withSort([timestamp, nonce])
       .withMustCondition(matchSwapTokens);

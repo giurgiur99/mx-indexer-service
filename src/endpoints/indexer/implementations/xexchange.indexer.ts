@@ -92,8 +92,8 @@ export class XexchangeIndexer implements IndexerInterface {
     }
 
     return {
+      decodedEvents: decodedEvents,
       indexerEntries: indexerEntries,
-      // logsSwapToken: logsSwapToken,
     };
   }
 
@@ -104,6 +104,8 @@ export class XexchangeIndexer implements IndexerInterface {
   ): IndexerData {
     const feesCollectorAddress =
       'erd1qqqqqqqqqqqqqpgqjsnxqprks7qxfwkcg2m2v9hxkrchgm9akp2segrswt';
+    const MexWegldPoolAddress =
+      'erd1qqqqqqqqqqqqqpgqa0fsfshnff4n76jhcye6k7uvd7qacsq42jpsp6shh2';
 
     const swapTokensEvent = decodedEvents.find(
       (event: SmartContractDecodedEvent) =>
@@ -120,10 +122,26 @@ export class XexchangeIndexer implements IndexerInterface {
         event.identifier === 'ESDTLocalBurn',
     )?.topics.amount;
 
-    const fees = decodedEvents.find(
+    let fees = decodedEvents.find(
       (event: SmartContractDecodedEvent) =>
         event.topics.address === feesCollectorAddress,
     )?.topics.amount;
+    if (!fees) {
+      fees = decodedEvents.find(
+        (event: SmartContractDecodedEvent) =>
+          event.topics.address === MexWegldPoolAddress,
+      )?.topics.amount;
+    }
+
+    const priceOutEvent = decodedEvents.find(
+      (event: SmartContractDecodedEvent) =>
+        event.topics.token === swapTokensEvent?.topics.tokenOut,
+    )?.topics.amount;
+    const priceInEvent = decodedEvents.find(
+      (event: SmartContractDecodedEvent) =>
+        event.topics.token === swapTokensEvent?.topics.tokenIn,
+    )?.topics.amount;
+    const price = Number(priceOutEvent) / Number(priceInEvent);
 
     const WEGLDVolume = decodedEvents.find(
       (event: SmartContractDecodedEvent) =>
@@ -135,6 +153,7 @@ export class XexchangeIndexer implements IndexerInterface {
       hash,
       address: outAddress,
       pair,
+      price,
       volume: Number(WEGLDVolume),
       burn: Number(ESDTLocalBurn),
       fee: Number(fees),
