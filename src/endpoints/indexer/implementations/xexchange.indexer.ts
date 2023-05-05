@@ -44,6 +44,9 @@ export class XexchangeIndexer implements IndexerInterface {
     // - Divide 31000 by 84.22030673074847279 = 368.1
     // Fees saved as varchar
     // Test volumes using https://xexchange.com/analytics by querying the database for days & months ex WAM/EGLD
+    // Volume Recieved WEGLD + Fees
+    // 0.05% burn from 0.3%
+    //Check hash:6422ce048bd6d26f3e2ca21a5ced139aab8a28f3f9528d736422bcd091e8a74e
 
     let data: LogSwapToken[] = [];
     const isHash = !!hash;
@@ -92,7 +95,6 @@ export class XexchangeIndexer implements IndexerInterface {
     }
 
     return {
-      decodedEvents: decodedEvents,
       indexerEntries: indexerEntries,
     };
   }
@@ -143,11 +145,15 @@ export class XexchangeIndexer implements IndexerInterface {
     )?.topics.amount;
     const price = Number(priceOutEvent) / Number(priceInEvent);
 
-    const WEGLDVolume = decodedEvents.find(
+    let WEGLDVolume = decodedEvents.find(
       (event: SmartContractDecodedEvent) =>
         event.topics.token === 'WEGLD-bd4d79' &&
         (event.address === outAddress || event.topics.address === outAddress),
     )?.topics.amount;
+
+    if (swapTokensEvent?.topics.tokenIn !== 'WEGLD-bd4d79') {
+      WEGLDVolume = Number(WEGLDVolume) / (1 - 0.3 / 100);
+    }
 
     return {
       hash,

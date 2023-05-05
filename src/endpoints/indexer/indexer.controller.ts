@@ -24,8 +24,8 @@ export class IndexerController {
 
   @Get(':name/start')
   async startIndexing(
-    @Query('before') before: number,
-    @Query('after') after: number,
+    @Query('before') before: Date,
+    @Query('after') after: Date,
     @Query('hash') hash: string,
     @Param('name') name: string,
     @Query('from') from: number,
@@ -34,9 +34,12 @@ export class IndexerController {
     try {
       const indexer = this.indexerService.getIndexer(name);
       if (!indexer) return new NotFoundException('Indexer not found');
+      const timestampBefore = new Date(before).getTime() / 1000;
+      const timestampAfter = new Date(after).getTime() / 1000;
+      console.log(timestampAfter, timestampBefore);
       return await this.indexerService.indexInterval(
-        before,
-        after,
+        timestampBefore,
+        timestampAfter,
         name,
         hash,
         from,
