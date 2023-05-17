@@ -20,10 +20,7 @@ export class PostgresIndexerService {
 
   async bulkAddIndexerData(data: IndexerData[]) {
     try {
-      // return await this.indexerData.insert(data);
-      for (let i = 0; i < data.length; i++) {
-        await this.indexerData.save(data[i]);
-      }
+      await this.indexerData.save(data);
     } catch (e) {
       console.log(e);
       throw e;

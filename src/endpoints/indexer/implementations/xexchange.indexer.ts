@@ -40,10 +40,8 @@ export class XexchangeIndexer implements IndexerInterface {
     // - Ex. Swap 31000 ZPAY for a minimum of 84.22030673074847279 WEGLD
     // - Divide 31000 by 84.22030673074847279 = 368.1
     // Fees saved as varchar
-    // Test volumes using https://xexchange.com/analytics by querying the database for days & months ex WAM/EGLD
     // Volume Recieved WEGLD + Fees
     // 0.05% burn from 0.3%
-    //Check hash:6422ce048bd6d26f3e2ca21a5ced139aab8a28f3f9528d736422bcd091e8a74e
 
     let data: LogSwapToken[] = [];
     const isHash = !!hash;
@@ -70,15 +68,23 @@ export class XexchangeIndexer implements IndexerInterface {
       return { hash, timestamp, events };
     });
 
-    const indexerEntries: IndexerData[] = [];
-    // console.log('decodedEvents', decodedEvents.length);
-    for (const event of decodedEvents) {
+    let indexerEntries: IndexerData[] = [];
+    for (let i = 0; i < decodedEvents.length; i++) {
+      const event = decodedEvents[i];
       const indexerDataEntry = this.calculateIndexerDataEntry(
         event.events,
         event.timestamp,
         event.hash,
       );
       indexerEntries.push(indexerDataEntry);
+      if (i % 5000 === 0) {
+        await this.postgresIndexerService.bulkAddIndexerData(indexerEntries);
+        indexerEntries = [];
+      }
+    }
+
+    if (indexerEntries.length > 0) {
+      await this.postgresIndexerService.bulkAddIndexerData(indexerEntries);
     }
 
     return indexerEntries;

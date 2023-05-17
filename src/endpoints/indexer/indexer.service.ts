@@ -41,7 +41,6 @@ export class IndexerService {
       : await this.elasticIndexerService.getSwapTokenLogsCount(after, before);
 
     const data = await indexer.startIndexing(before, after, hash);
-    await this.postgresIndexerService.bulkAddIndexerData(data);
 
     // TODO:
     // - delete from the database all rows for the given indexer

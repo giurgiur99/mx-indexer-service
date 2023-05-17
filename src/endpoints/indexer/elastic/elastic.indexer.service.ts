@@ -85,11 +85,9 @@ export class ElasticIndexerService {
         for (const item of items) {
           logs.push(item);
         }
-        console.log('logs', logs.length);
       },
     );
 
-    console.log(logs);
     return logs;
   }
 
