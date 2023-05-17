@@ -31,6 +31,6 @@ interface SmartContractData {
   tokenIn?: string;
   tokenOut?: string;
   address?: string;
-  amount?: number;
+  amount?: BigInt;
   value?: string[];
 }

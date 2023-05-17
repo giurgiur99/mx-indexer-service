@@ -3,6 +3,7 @@ import { IndexerInterface } from './indexer.interface';
 import { XexchangeIndexer } from './implementations/xexchange.indexer';
 import { PostgresIndexerService } from './postgres/postgres.indexer.service';
 import { ElasticIndexerService } from './elastic/elastic.indexer.service';
+// import { IndexerData } from './postgres/entities/indexer.data.entity';
 
 @Injectable()
 export class IndexerService {
@@ -28,9 +29,8 @@ export class IndexerService {
     after: number,
     indexerName: string,
     hash?: string,
-    from?: number,
-    size?: number,
   ) {
+    await this.postgresIndexerService.clear();
     const indexer = this.getIndexer(indexerName);
     if (!indexer) {
       throw new Error(`Indexer ${indexerName} not found`);
@@ -40,14 +40,8 @@ export class IndexerService {
       ? 1
       : await this.elasticIndexerService.getSwapTokenLogsCount(after, before);
 
-    let results: any[] = [];
-
-    if (from && size) {
-      for (let i = from; i < countLogs; i += size) {
-        const data = await indexer.startIndexing(before, after, hash, i, size);
-        results.push(data);
-      }
-    }
+    const data = await indexer.startIndexing(before, after, hash);
+    await this.postgresIndexerService.bulkAddIndexerData(data);
 
     // TODO:
     // - delete from the database all rows for the given indexer
@@ -78,7 +72,7 @@ export class IndexerService {
 
     return {
       countLogs,
-      results,
+      results: data,
       done: true,
     };
   }

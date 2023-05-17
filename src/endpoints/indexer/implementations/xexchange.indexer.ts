@@ -3,6 +3,7 @@ import { IndexerInterface } from '../indexer.interface';
 import { IndexerData } from '../postgres/entities/indexer.data.entity';
 import { ElasticIndexerService } from '../elastic/elastic.indexer.service';
 import { PostgresIndexerService } from '../postgres/postgres.indexer.service';
+import { NumberUtils } from '@multiversx/sdk-nestjs';
 
 export class XexchangeIndexer implements IndexerInterface {
   constructor(
@@ -33,11 +34,7 @@ export class XexchangeIndexer implements IndexerInterface {
     before: number,
     after: number,
     hash?: string,
-    from?: number,
-    size?: number,
-  ): Promise<any> {
-    await this.postgresIndexerService.clear();
-
+  ): Promise<IndexerData[]> {
     //duplicate detector by hash
     //price
     // - Ex. Swap 31000 ZPAY for a minimum of 84.22030673074847279 WEGLD
@@ -54,17 +51,7 @@ export class XexchangeIndexer implements IndexerInterface {
     if (isHash) {
       data = await this.elasticIndexerService.getSwapTokenLogByHash(hash);
     } else {
-      data = await new Promise(async (resolve) => {
-        this.elasticIndexerService.getSwapTokenLogs(
-          async (items) => {
-            resolve(items);
-          },
-          before,
-          after,
-          from,
-          size,
-        );
-      });
+      data = await this.elasticIndexerService.getSwapTokenLogs(before, after);
     }
 
     const decodedEvents = data.map((item) => {
@@ -84,6 +71,7 @@ export class XexchangeIndexer implements IndexerInterface {
     });
 
     const indexerEntries: IndexerData[] = [];
+    // console.log('decodedEvents', decodedEvents.length);
     for (const event of decodedEvents) {
       const indexerDataEntry = this.calculateIndexerDataEntry(
         event.events,
@@ -91,12 +79,9 @@ export class XexchangeIndexer implements IndexerInterface {
         event.hash,
       );
       indexerEntries.push(indexerDataEntry);
-      await this.postgresIndexerService.addIndexerData(indexerDataEntry);
     }
 
-    return {
-      indexerEntries: indexerEntries,
-    };
+    return indexerEntries;
   }
 
   calculateIndexerDataEntry(
@@ -111,8 +96,9 @@ export class XexchangeIndexer implements IndexerInterface {
 
     const swapTokensEvent = decodedEvents.find(
       (event: SmartContractDecodedEvent) =>
-        event.identifier === 'swapTokensFixedInput' ||
-        event.identifier === 'swapTokensFixedOutput',
+        event.topics.action === 'swap' &&
+        (event.identifier === 'swapTokensFixedInput' ||
+          event.identifier === 'swapTokensFixedOutput'),
     );
 
     const pair =
@@ -128,6 +114,7 @@ export class XexchangeIndexer implements IndexerInterface {
       (event: SmartContractDecodedEvent) =>
         event.topics.address === feesCollectorAddress,
     )?.topics.amount;
+
     if (!fees) {
       fees = decodedEvents.find(
         (event: SmartContractDecodedEvent) =>
@@ -143,6 +130,7 @@ export class XexchangeIndexer implements IndexerInterface {
       (event: SmartContractDecodedEvent) =>
         event.topics.token === swapTokensEvent?.topics.tokenIn,
     )?.topics.amount;
+
     const price = Number(priceOutEvent) / Number(priceInEvent);
 
     let WEGLDVolume = decodedEvents.find(
@@ -151,19 +139,30 @@ export class XexchangeIndexer implements IndexerInterface {
         (event.address === outAddress || event.topics.address === outAddress),
     )?.topics.amount;
 
-    if (swapTokensEvent?.topics.tokenIn !== 'WEGLD-bd4d79') {
-      WEGLDVolume = Number(WEGLDVolume) / (1 - 0.3 / 100);
-    }
+    // if (swapTokensEvent?.topics.tokenIn !== 'WEGLD-bd4d79') {
+    //   WEGLDVolume = Number(WEGLDVolume) - (0.3 * Number(WEGLDVolume)) / 100;
+    // }
+
+    const numberWEGLDVolume = WEGLDVolume
+      ? NumberUtils.denominate(WEGLDVolume, 18)
+      : 0;
+    const numberBurn = ESDTLocalBurn
+      ? NumberUtils.denominate(ESDTLocalBurn, 18)
+      : 0;
+    const numberFees = fees ? NumberUtils.denominate(fees, 18) : 0;
 
     return {
       hash,
       address: outAddress,
       pair,
+      tokenIn: swapTokensEvent?.topics.tokenIn,
+      tokenOut: swapTokensEvent?.topics.tokenOut,
       price,
-      volume: Number(WEGLDVolume),
-      burn: Number(ESDTLocalBurn),
-      fee: Number(fees),
+      volume: numberWEGLDVolume,
+      burn: numberBurn,
+      fee: numberFees,
       timestamp,
+      date: new Date(Number(timestamp) * 1000).addHours(-3).toISOString(),
       provider: 'xexchange',
     };
   }

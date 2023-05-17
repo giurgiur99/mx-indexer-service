@@ -15,6 +15,12 @@ export class IndexerData {
   pair?: string;
 
   @Column()
+  tokenIn?: string;
+
+  @Column()
+  tokenOut?: string;
+
+  @Column()
   price?: number;
 
   @Column()
@@ -28,6 +34,9 @@ export class IndexerData {
 
   @Column()
   timestamp?: string;
+
+  @Column()
+  date?: string;
 
   @Column()
   provider?: string;

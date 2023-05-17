@@ -18,6 +18,18 @@ export class PostgresIndexerService {
     return await this.indexerData.save(data);
   }
 
+  async bulkAddIndexerData(data: IndexerData[]) {
+    try {
+      // return await this.indexerData.insert(data);
+      for (let i = 0; i < data.length; i++) {
+        await this.indexerData.save(data[i]);
+      }
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
+  }
+
   async getPairs(): Promise<(string | undefined)[]> {
     const pairs = await this.indexerData.find();
     return pairs.map((pair) => pair.pair);

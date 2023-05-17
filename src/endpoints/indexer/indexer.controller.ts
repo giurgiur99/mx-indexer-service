@@ -28,22 +28,19 @@ export class IndexerController {
     @Query('after') after: Date,
     @Query('hash') hash: string,
     @Param('name') name: string,
-    @Query('from') from: number,
-    @Query('size') size: number,
   ) {
     try {
       const indexer = this.indexerService.getIndexer(name);
       if (!indexer) return new NotFoundException('Indexer not found');
-      const timestampBefore = new Date(before).getTime() / 1000;
-      const timestampAfter = new Date(after).getTime() / 1000;
-      console.log(timestampAfter, timestampBefore);
+      //Use romanian time
+      const timestampBefore = new Date(before).addHours(3).getTime() / 1000;
+      const timestampAfter = new Date(after).addHours(3).getTime() / 1000;
+      console.log(timestampBefore, timestampAfter);
       return await this.indexerService.indexInterval(
         timestampBefore,
         timestampAfter,
         name,
         hash,
-        from,
-        size,
       );
     } catch (e) {
       console.log(e);

@@ -1,4 +1,5 @@
 import { PairChange } from './entities/pair.change';
+import { IndexerData } from './postgres/entities/indexer.data.entity';
 
 export interface IndexerInterface {
   getName(): string;
@@ -13,7 +14,5 @@ export interface IndexerInterface {
     before: number,
     after: number,
     hash?: string,
-    from?: number,
-    size?: number,
-  ): Promise<any>;
+  ): Promise<IndexerData[]>;
 }
