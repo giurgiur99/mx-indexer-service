@@ -69,6 +69,19 @@ export class XexchangeIndexer implements IndexerInterface {
     });
 
     let indexerEntries: IndexerData[] = [];
+
+    if (decodedEvents.length === 1) {
+      const event = decodedEvents[0];
+      const indexerDataEntry = this.calculateIndexerDataEntry(
+        event.events,
+        event.timestamp,
+        event.hash,
+      );
+      indexerEntries.push(indexerDataEntry);
+      await this.postgresIndexerService.bulkAddIndexerData(indexerEntries);
+      return indexerEntries;
+    }
+
     for (let i = 0; i < decodedEvents.length; i++) {
       const event = decodedEvents[i];
       const indexerDataEntry = this.calculateIndexerDataEntry(
