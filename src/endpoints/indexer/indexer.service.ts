@@ -71,6 +71,7 @@ export class IndexerService {
 
     return {
       countLogs,
+      resultsLength: data.length,
       results: data,
       done: true,
     };

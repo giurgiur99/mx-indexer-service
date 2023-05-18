@@ -22,6 +22,9 @@ export class ElasticIndexerService {
         QueryType.Nested('events', {
           'events.identifier': 'swapTokensFixedOutput',
         }),
+        QueryType.Nested('events', {
+          'events.identifier': 'swap',
+        }),
       ]),
     ];
 
@@ -61,6 +64,9 @@ export class ElasticIndexerService {
         QueryType.Nested('events', {
           'events.identifier': 'swapTokensFixedOutput',
         }),
+        QueryType.Nested('events', {
+          'events.identifier': 'swap',
+        }),
       ]),
     ];
 
@@ -93,6 +99,7 @@ export class ElasticIndexerService {
 
   topicDecoder(identifier: string, topics: string[]): SmartContractData {
     switch (identifier) {
+      case 'swap':
       case 'swapTokensFixedOutput':
       case 'swapTokensFixedInput': {
         const action = BinaryUtils.base64Decode(topics[0]);

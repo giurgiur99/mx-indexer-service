@@ -69,7 +69,6 @@ export class XexchangeIndexer implements IndexerInterface {
     });
 
     let indexerEntries: IndexerData[] = [];
-
     if (decodedEvents.length === 1) {
       const event = decodedEvents[0];
       const indexerDataEntry = this.calculateIndexerDataEntry(
@@ -81,7 +80,6 @@ export class XexchangeIndexer implements IndexerInterface {
       await this.postgresIndexerService.bulkAddIndexerData(indexerEntries);
       return indexerEntries;
     }
-
     for (let i = 0; i < decodedEvents.length; i++) {
       const event = decodedEvents[i];
       const indexerDataEntry = this.calculateIndexerDataEntry(
@@ -114,10 +112,16 @@ export class XexchangeIndexer implements IndexerInterface {
       'erd1qqqqqqqqqqqqqpgqa0fsfshnff4n76jhcye6k7uvd7qacsq42jpsp6shh2';
 
     const swapTokensEvent = decodedEvents.find(
-      (event: SmartContractDecodedEvent) =>
-        event.topics.action === 'swap' &&
-        (event.identifier === 'swapTokensFixedInput' ||
-          event.identifier === 'swapTokensFixedOutput'),
+      (event: SmartContractDecodedEvent) => {
+        if (event.topics.action === 'swap') {
+          return (
+            event.identifier === 'swapTokensFixedInput' ||
+            event.identifier === 'swapTokensFixedOutput' ||
+            event.identifier === 'swap'
+          );
+        }
+        return false;
+      },
     );
 
     const pair =
