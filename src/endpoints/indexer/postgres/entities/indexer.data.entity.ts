@@ -30,9 +30,6 @@ export class IndexerData {
   fee?: number;
 
   @Column()
-  burn?: number;
-
-  @Column()
   timestamp?: string;
 
   @Column()

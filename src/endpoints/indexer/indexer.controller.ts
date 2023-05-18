@@ -36,7 +36,7 @@ export class IndexerController {
       const timestampBefore = new Date(before).addHours(3).getTime() / 1000;
       const timestampAfter = new Date(after).addHours(3).getTime() / 1000;
       console.log(timestampBefore, timestampAfter);
-      return await this.indexerService.indexInterval(
+      return await this.indexerService.indexIntervalSdk(
         timestampBefore,
         timestampAfter,
         name,

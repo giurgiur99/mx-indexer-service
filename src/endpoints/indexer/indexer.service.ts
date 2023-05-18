@@ -24,6 +24,25 @@ export class IndexerService {
     return undefined;
   }
 
+  async indexIntervalSdk(
+    before: number,
+    after: number,
+    indexerName: string,
+    hash?: string,
+  ) {
+    await this.postgresIndexerService.clear();
+    const indexer = this.getIndexer(indexerName);
+    if (!indexer) {
+      throw new Error(`Indexer ${indexerName} not found`);
+    }
+    const countLogs = hash
+      ? 1
+      : await this.elasticIndexerService.getSwapTokenLogsCount(after, before);
+
+    const data = await indexer.startIndexingSdk(before, after, hash);
+    return { countLogs, data };
+  }
+
   async indexInterval(
     before: number,
     after: number,

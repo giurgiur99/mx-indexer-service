@@ -4,6 +4,12 @@ import { IndexerData } from '../postgres/entities/indexer.data.entity';
 import { ElasticIndexerService } from '../elastic/elastic.indexer.service';
 import { PostgresIndexerService } from '../postgres/postgres.indexer.service';
 import { NumberUtils } from '@multiversx/sdk-nestjs';
+import {
+  RawEvent,
+  RawEventType,
+  SwapEvent,
+  SwapEventType,
+} from '@multiversx/sdk-exchange';
 
 export class XexchangeIndexer implements IndexerInterface {
   constructor(
@@ -28,6 +34,95 @@ export class XexchangeIndexer implements IndexerInterface {
   async getPairChange(_event: any): Promise<PairChange[]> {
     // TODO: decode swapTokensFixedInput, swapTokensFixedOutput event that returns price & volume
     return [];
+  }
+
+  async startIndexingSdk(
+    before: number,
+    after: number,
+    hash?: string,
+  ): Promise<any> {
+    const isHash = !!hash;
+
+    let data = [];
+    if (isHash) {
+      data = await this.elasticIndexerService.getSwapTokenLogByHash(hash);
+    } else {
+      data = await this.elasticIndexerService.getSwapTokenLogs(before, after);
+    }
+
+    const decodedEvents = data.map((item) => {
+      const identifier = item.identifier ?? '0';
+      const timestamp = item.timestamp ?? '0';
+      return {
+        identifier,
+        timestamp,
+        events: item.events.map((event: RawEventType) => {
+          switch (event.identifier) {
+            case 'swapTokensFixedOutput':
+            case 'swapTokensFixedInput':
+              return new SwapEvent(event);
+            default:
+              return new RawEvent(event);
+          }
+        }) as (RawEventType | SwapEventType)[],
+      };
+    });
+
+    let indexerEntries: IndexerData[] = [];
+    for (let i = 0; i < decodedEvents.length; i++) {
+      const event = decodedEvents[i];
+
+      const swapTokenEvent = event.events.find(
+        (e: RawEventType) =>
+          e.identifier === 'swapTokensFixedOutput' ||
+          e.identifier === 'swapTokensFixedInput',
+      ) as SwapEvent | undefined;
+
+      try {
+        if (swapTokenEvent) {
+          const tokenIn = swapTokenEvent.getTokenIn()?.tokenID;
+          const tokenOut = swapTokenEvent.getTokenOut()?.tokenID;
+          const volume =
+            tokenIn === 'WEGLD-bd4d79'
+              ? swapTokenEvent.getTokenIn()?.amount
+              : swapTokenEvent.getTokenOut()?.amount;
+          const fee = swapTokenEvent.feeAmount;
+
+          const indexerDataEntry: IndexerData = {
+            date: new Date(Number(event.timestamp) * 1000).toISOString(),
+            provider: 'xexchange',
+            hash: event.identifier,
+            timestamp: event.timestamp,
+            tokenIn,
+            tokenOut,
+            pair: `${tokenIn}/${tokenOut}`,
+            volume: Number(volume),
+            fee: Number(fee),
+          };
+          indexerEntries.push(indexerDataEntry);
+        }
+      } catch (e) {
+        console.log('error');
+        console.log(swapTokenEvent);
+
+        console.log(e);
+      }
+
+      if (i % 5000 === 0 && i !== 0) {
+        await this.postgresIndexerService.bulkAddIndexerData(indexerEntries);
+        indexerEntries = [];
+      }
+    }
+
+    if (indexerEntries.length > 0) {
+      await this.postgresIndexerService.bulkAddIndexerData(indexerEntries);
+    }
+
+    return {
+      indexerEntries,
+      decodedEventsLength: decodedEvents.length,
+      decodedEvents,
+    };
   }
 
   async startIndexing(
@@ -128,11 +223,6 @@ export class XexchangeIndexer implements IndexerInterface {
       swapTokensEvent?.topics.tokenIn + '/' + swapTokensEvent?.topics.tokenOut;
     const outAddress = swapTokensEvent?.topics.address;
 
-    const ESDTLocalBurn = decodedEvents.find(
-      (event: SmartContractDecodedEvent) =>
-        event.identifier === 'ESDTLocalBurn',
-    )?.topics.amount;
-
     let fees = decodedEvents.find(
       (event: SmartContractDecodedEvent) =>
         event.topics.address === feesCollectorAddress,
@@ -169,9 +259,7 @@ export class XexchangeIndexer implements IndexerInterface {
     const numberWEGLDVolume = WEGLDVolume
       ? NumberUtils.denominate(WEGLDVolume, 18)
       : 0;
-    const numberBurn = ESDTLocalBurn
-      ? NumberUtils.denominate(ESDTLocalBurn, 18)
-      : 0;
+
     const numberFees = fees ? NumberUtils.denominate(fees, 18) : 0;
 
     return {
@@ -182,7 +270,6 @@ export class XexchangeIndexer implements IndexerInterface {
       tokenOut: swapTokensEvent?.topics.tokenOut,
       price,
       volume: numberWEGLDVolume,
-      burn: numberBurn,
       fee: numberFees,
       timestamp,
       date: new Date(Number(timestamp) * 1000).addHours(-3).toISOString(),

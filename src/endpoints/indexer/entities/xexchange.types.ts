@@ -4,6 +4,8 @@ interface LogSwapToken {
   id?: string;
   events: SmartContractEvent[];
   timestamp?: string;
+  address: string;
+  identifier: string;
 }
 
 interface SmartContractEvent {

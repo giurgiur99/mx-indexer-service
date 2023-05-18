@@ -15,4 +15,6 @@ export interface IndexerInterface {
     after: number,
     hash?: string,
   ): Promise<IndexerData[]>;
+
+  startIndexingSdk(before: number, after: number, hash?: string): Promise<any>;
 }

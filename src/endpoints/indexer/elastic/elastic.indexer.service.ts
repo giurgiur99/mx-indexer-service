@@ -43,7 +43,11 @@ export class ElasticIndexerService {
       QueryConditionOptions.must,
       QueryType.Match('_id', hash),
     );
-    return await this.elasticService.getList('logs', 'id', elasticQueryLogs);
+    return await this.elasticService.getList(
+      'logs',
+      'identifier',
+      elasticQueryLogs,
+    );
   }
 
   async getSwapTokenLogs(before: number, after: number): Promise<any[]> {
@@ -70,7 +74,7 @@ export class ElasticIndexerService {
       ]),
     ];
 
-    const key = 'swapTokensFixedInput';
+    const key = 'identifier';
 
     let elasticQuery = ElasticQuery.create()
       .withSort([timestamp, nonce])
