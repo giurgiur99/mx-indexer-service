@@ -22,9 +22,6 @@ export class ElasticIndexerService {
         QueryType.Nested('events', {
           'events.identifier': 'swapTokensFixedOutput',
         }),
-        QueryType.Nested('events', {
-          'events.identifier': 'swap',
-        }),
       ]),
     ];
 
@@ -67,9 +64,6 @@ export class ElasticIndexerService {
         }),
         QueryType.Nested('events', {
           'events.identifier': 'swapTokensFixedOutput',
-        }),
-        QueryType.Nested('events', {
-          'events.identifier': 'swap',
         }),
       ]),
     ];

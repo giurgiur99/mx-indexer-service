@@ -71,41 +71,44 @@ export class XexchangeIndexer implements IndexerInterface {
     let indexerEntries: IndexerData[] = [];
     for (let i = 0; i < decodedEvents.length; i++) {
       const event = decodedEvents[i];
-
-      const swapTokenEvent = event.events.find(
+      const swapTokenEventList = event.events.filter(
         (e: RawEventType) =>
           e.identifier === 'swapTokensFixedOutput' ||
           e.identifier === 'swapTokensFixedInput',
-      ) as SwapEvent | undefined;
+      ) as SwapEvent[];
 
       try {
-        if (swapTokenEvent) {
-          const tokenIn = swapTokenEvent.getTokenIn()?.tokenID;
-          const tokenOut = swapTokenEvent.getTokenOut()?.tokenID;
-          const volume =
-            tokenIn === 'WEGLD-bd4d79'
-              ? swapTokenEvent.getTokenIn()?.amount
-              : swapTokenEvent.getTokenOut()?.amount;
-          const fee = swapTokenEvent.feeAmount;
+        swapTokenEventList.map((swapTokenEvent) => {
+          if (swapTokenEvent) {
+            const tokenIn = swapTokenEvent.getTokenIn()?.tokenID;
+            const tokenOut = swapTokenEvent.getTokenOut()?.tokenID;
+            const volume = (
+              tokenIn === 'WEGLD-bd4d79'
+                ? swapTokenEvent.getTokenIn()?.amount
+                : swapTokenEvent.getTokenOut()?.amount
+            ) as BigInt | undefined;
+            const fee = swapTokenEvent.feeAmount as BigInt | undefined;
+            const date = new Date(Number(event.timestamp) * 1000)
+              .addHours(-3)
+              .toISOString();
 
-          const indexerDataEntry: IndexerData = {
-            date: new Date(Number(event.timestamp) * 1000).toISOString(),
-            provider: 'xexchange',
-            hash: event.identifier,
-            timestamp: event.timestamp,
-            tokenIn,
-            tokenOut,
-            pair: `${tokenIn}/${tokenOut}`,
-            volume: Number(volume),
-            fee: Number(fee),
-          };
-          indexerEntries.push(indexerDataEntry);
-        }
+            const indexerDataEntry: IndexerData = {
+              date,
+              provider: 'xexchange',
+              hash: event.identifier,
+              timestamp: event.timestamp,
+              tokenIn,
+              tokenOut,
+              pair: `${tokenIn}/${tokenOut}`,
+              volume: NumberUtils.denominate(volume!, 18),
+              fee: NumberUtils.denominate(fee!, 18),
+            };
+
+            indexerEntries.push(indexerDataEntry);
+          }
+        });
       } catch (e) {
-        console.log('error');
-        console.log(swapTokenEvent);
-
-        console.log(e);
+        console.log('Error: ', e);
       }
 
       if (i % 5000 === 0 && i !== 0) {
@@ -121,10 +124,12 @@ export class XexchangeIndexer implements IndexerInterface {
     return {
       indexerEntries,
       decodedEventsLength: decodedEvents.length,
-      decodedEvents,
     };
   }
 
+  /**
+   * @deprecated
+   */
   async startIndexing(
     before: number,
     after: number,
