@@ -44,18 +44,24 @@ export class XexchangeIndexer implements IndexerInterface {
     const isHash = !!hash;
 
     let data = [];
+    let transactions = [];
     if (isHash) {
       data = await this.elasticIndexerService.getSwapTokenLogByHash(hash);
     } else {
       data = await this.elasticIndexerService.getSwapTokenLogs(before, after);
+      transactions = (
+        await this.elasticIndexerService.getTransactions(before, after)
+      ).map((tx) => tx.identifier);
     }
 
     const decodedEvents = data.map((item) => {
       const identifier = item.identifier ?? '0';
+      const functions = item.function ?? '0';
       const timestamp = item.timestamp ?? '0';
       return {
         identifier,
         timestamp,
+        functions,
         events: item.events.map((event: RawEventType) => {
           switch (event.identifier) {
             case 'swapTokensFixedOutput':
@@ -71,44 +77,64 @@ export class XexchangeIndexer implements IndexerInterface {
     let indexerEntries: IndexerData[] = [];
     for (let i = 0; i < decodedEvents.length; i++) {
       const event = decodedEvents[i];
-      const swapTokenEventList = event.events.filter(
-        (e: RawEventType) =>
-          e.identifier === 'swapTokensFixedOutput' ||
-          e.identifier === 'swapTokensFixedInput',
-      ) as SwapEvent[];
+      // const swapEvent = transactions.find(
+      //   (tx) =>
+      //     tx === event.identifier ||
+      //     tx === event.events.map((e) => e.identifier),
+      // );
+      const swapEvent = false;
+      if (!swapEvent) {
+        const swapTokenEventList = event.events.filter(
+          (e: RawEventType) =>
+            e.identifier === 'swapTokensFixedOutput' ||
+            e.identifier === 'swapTokensFixedInput',
+        ) as SwapEvent[];
 
-      try {
-        swapTokenEventList.map((swapTokenEvent) => {
-          if (swapTokenEvent) {
-            const tokenIn = swapTokenEvent.getTokenIn()?.tokenID;
-            const tokenOut = swapTokenEvent.getTokenOut()?.tokenID;
-            const volume = (
-              tokenIn === 'WEGLD-bd4d79'
-                ? swapTokenEvent.getTokenIn()?.amount
-                : swapTokenEvent.getTokenOut()?.amount
-            ) as BigInt | undefined;
-            const fee = swapTokenEvent.feeAmount as BigInt | undefined;
-            const date = new Date(Number(event.timestamp) * 1000)
-              .addHours(-3)
-              .toISOString();
+        try {
+          swapTokenEventList.map((swapTokenEvent) => {
+            if (swapTokenEvent) {
+              const tokenIn = swapTokenEvent.getTokenIn()?.tokenID;
+              const tokenOut = swapTokenEvent.getTokenOut()?.tokenID;
+              let volume;
+              let checkUSDC = false;
+              if (tokenIn === 'USDC-c76f1f' || tokenOut === 'USDC-c76f1f') {
+                checkUSDC = true;
+                volume = (
+                  tokenIn === 'USDC-c76f1f'
+                    ? swapTokenEvent.getTokenIn()?.amount
+                    : swapTokenEvent.getTokenOut()?.amount
+                ) as BigInt | undefined;
+              } else
+                volume = (
+                  tokenIn === 'WEGLD-bd4d79'
+                    ? swapTokenEvent.getTokenIn()?.amount
+                    : swapTokenEvent.getTokenOut()?.amount
+                ) as BigInt | undefined;
+              const fee = swapTokenEvent.feeAmount as BigInt | undefined;
+              const date = new Date(Number(event.timestamp) * 1000)
+                .addHours(-3)
+                .toISOString();
 
-            const indexerDataEntry: IndexerData = {
-              date,
-              provider: 'xexchange',
-              hash: event.identifier,
-              timestamp: event.timestamp,
-              tokenIn,
-              tokenOut,
-              pair: `${tokenIn}/${tokenOut}`,
-              volume: NumberUtils.denominate(volume!, 18),
-              fee: NumberUtils.denominate(fee!, 18),
-            };
+              const indexerDataEntry: IndexerData = {
+                date,
+                provider: 'xexchange',
+                hash: event.identifier,
+                timestamp: event.timestamp,
+                tokenIn,
+                tokenOut,
+                pair: `${tokenIn}/${tokenOut}`,
+                volume: checkUSDC
+                  ? NumberUtils.denominate(volume!, 6)
+                  : NumberUtils.denominate(volume!, 18),
+                fee: NumberUtils.denominate(fee!, 18),
+              };
 
-            indexerEntries.push(indexerDataEntry);
-          }
-        });
-      } catch (e) {
-        console.log('Error: ', e);
+              indexerEntries.push(indexerDataEntry);
+            }
+          });
+        } catch (e) {
+          console.log('Error: ', e);
+        }
       }
 
       if (i % 5000 === 0 && i !== 0) {
@@ -122,7 +148,9 @@ export class XexchangeIndexer implements IndexerInterface {
     }
 
     return {
-      indexerEntries,
+      transactionsLength: transactions.length,
+
+      data,
       decodedEventsLength: decodedEvents.length,
     };
   }
@@ -216,8 +244,7 @@ export class XexchangeIndexer implements IndexerInterface {
         if (event.topics.action === 'swap') {
           return (
             event.identifier === 'swapTokensFixedInput' ||
-            event.identifier === 'swapTokensFixedOutput' ||
-            event.identifier === 'swap'
+            event.identifier === 'swapTokensFixedOutput'
           );
         }
         return false;

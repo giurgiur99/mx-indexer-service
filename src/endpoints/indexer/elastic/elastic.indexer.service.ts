@@ -95,9 +95,52 @@ export class ElasticIndexerService {
     return logs;
   }
 
+  async getTransactions(before: number, after: number): Promise<any[]> {
+    const sortOrder: ElasticSortOrder = ElasticSortOrder.descending;
+
+    const nonce: ElasticSortProperty = { name: 'timestamp', order: sortOrder };
+
+    const timestamp: ElasticSortProperty = {
+      name: 'timestamp',
+      order: sortOrder,
+    };
+
+    const matchSwapTransactions = [
+      QueryType.Should([
+        QueryType.Match('function', 'swapTokensFixedInput'),
+        QueryType.Match('function', 'swapTokensFixedOutput'),
+      ]),
+    ];
+
+    const key = 'identifier';
+
+    let elasticQuery = ElasticQuery.create()
+      .withSort([timestamp, nonce])
+      .withMustCondition(matchSwapTransactions)
+      .withPagination({ from: 0, size: 10000 });
+
+    if (before && after) {
+      elasticQuery.withDateRangeFilter('timestamp', before, after);
+    }
+
+    const transactions: any = [];
+
+    await this.elasticService.getScrollableList(
+      'transactions',
+      key,
+      elasticQuery,
+      async (items) => {
+        for (const item of items) {
+          transactions.push(item);
+        }
+      },
+    );
+
+    return transactions;
+  }
+
   topicDecoder(identifier: string, topics: string[]): SmartContractData {
     switch (identifier) {
-      case 'swap':
       case 'swapTokensFixedOutput':
       case 'swapTokensFixedInput': {
         const action = BinaryUtils.base64Decode(topics[0]);
