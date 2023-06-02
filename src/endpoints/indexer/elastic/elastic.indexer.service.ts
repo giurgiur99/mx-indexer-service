@@ -8,6 +8,7 @@ import {
   QueryConditionOptions,
   QueryType,
 } from '@multiversx/sdk-nestjs';
+import axios from 'axios';
 
 @Injectable()
 export class ElasticIndexerService {
@@ -107,8 +108,8 @@ export class ElasticIndexerService {
 
     const matchSwapTransactions = [
       QueryType.Should([
-        QueryType.Match('function', 'swapTokensFixedInput'),
-        QueryType.Match('function', 'swapTokensFixedOutput'),
+        QueryType.Match('function', 'swap'),
+        QueryType.Match('function', 'swap'),
       ]),
     ];
 
@@ -185,6 +186,16 @@ export class ElasticIndexerService {
         return {
           value: topics,
         };
+    }
+  }
+
+  async getMexPairs() {
+    try {
+      const response = await axios.get('https://api.multiversx.com/mex/pairs');
+      return response;
+    } catch (e) {
+      console.log(e);
+      throw e;
     }
   }
 }

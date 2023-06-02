@@ -37,4 +37,7 @@ export class IndexerData {
 
   @Column()
   provider?: string;
+
+  @Column()
+  destination?: string;
 }

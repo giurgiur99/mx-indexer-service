@@ -44,14 +44,12 @@ export class XexchangeIndexer implements IndexerInterface {
     const isHash = !!hash;
 
     let data = [];
-    let transactions = [];
+    const mexPairs = await this.elasticIndexerService.getMexPairs();
+    const mexPairAddresses = mexPairs.data.map((pair: any) => pair.address);
     if (isHash) {
       data = await this.elasticIndexerService.getSwapTokenLogByHash(hash);
     } else {
       data = await this.elasticIndexerService.getSwapTokenLogs(before, after);
-      transactions = (
-        await this.elasticIndexerService.getTransactions(before, after)
-      ).map((tx) => tx.identifier);
     }
 
     const decodedEvents = data.map((item) => {
@@ -77,64 +75,76 @@ export class XexchangeIndexer implements IndexerInterface {
     let indexerEntries: IndexerData[] = [];
     for (let i = 0; i < decodedEvents.length; i++) {
       const event = decodedEvents[i];
-      // const swapEvent = transactions.find(
-      //   (tx) =>
-      //     tx === event.identifier ||
-      //     tx === event.events.map((e) => e.identifier),
-      // );
-      const swapEvent = false;
-      if (!swapEvent) {
-        const swapTokenEventList = event.events.filter(
-          (e: RawEventType) =>
-            e.identifier === 'swapTokensFixedOutput' ||
-            e.identifier === 'swapTokensFixedInput',
-        ) as SwapEvent[];
 
-        try {
-          swapTokenEventList.map((swapTokenEvent) => {
-            if (swapTokenEvent) {
-              const tokenIn = swapTokenEvent.getTokenIn()?.tokenID;
-              const tokenOut = swapTokenEvent.getTokenOut()?.tokenID;
-              let volume;
-              let checkUSDC = false;
-              if (tokenIn === 'USDC-c76f1f' || tokenOut === 'USDC-c76f1f') {
-                checkUSDC = true;
-                volume = (
-                  tokenIn === 'USDC-c76f1f'
-                    ? swapTokenEvent.getTokenIn()?.amount
-                    : swapTokenEvent.getTokenOut()?.amount
-                ) as BigInt | undefined;
-              } else
-                volume = (
-                  tokenIn === 'WEGLD-bd4d79'
-                    ? swapTokenEvent.getTokenIn()?.amount
-                    : swapTokenEvent.getTokenOut()?.amount
-                ) as BigInt | undefined;
-              const fee = swapTokenEvent.feeAmount as BigInt | undefined;
-              const date = new Date(Number(event.timestamp) * 1000)
-                .addHours(-3)
-                .toISOString();
+      const badAddress = event.events
+        .filter(
+          (e: RawEventType | SwapEventType) =>
+            !mexPairAddresses.find((a: string) => a === e.address!) &&
+            (e.identifier === 'swapTokensFixedOutput' ||
+              e.identifier === 'swapTokensFixedInput'),
+        )
+        .map((e: RawEventType | SwapEventType) => e.address!);
 
-              const indexerDataEntry: IndexerData = {
-                date,
-                provider: 'xexchange',
-                hash: event.identifier,
-                timestamp: event.timestamp,
-                tokenIn,
-                tokenOut,
-                pair: `${tokenIn}/${tokenOut}`,
-                volume: checkUSDC
-                  ? NumberUtils.denominate(volume!, 6)
-                  : NumberUtils.denominate(volume!, 18),
-                fee: NumberUtils.denominate(fee!, 18),
-              };
+      const swapTokenEventList = event.events.filter(
+        (e: RawEventType | SwapEventType) =>
+          e.identifier === 'swapTokensFixedOutput' ||
+          e.identifier === 'swapTokensFixedInput',
+      ) as SwapEvent[];
 
+      //take care of duplicate logs
+      try {
+        swapTokenEventList.map((swapTokenEvent) => {
+          if (swapTokenEvent && !badAddress.includes(swapTokenEvent.address!)) {
+            const tokenIn = swapTokenEvent.getTokenIn()?.tokenID;
+            const tokenOut = swapTokenEvent.getTokenOut()?.tokenID;
+            const amountIn = swapTokenEvent.getTokenIn()?.amount;
+            const amountOut = swapTokenEvent.getTokenOut()?.amount;
+            let volume;
+            let checkUSDC = false;
+            if (tokenIn === 'USDC-c76f1f' || tokenOut === 'USDC-c76f1f') {
+              checkUSDC = true;
+              volume = (tokenIn === 'USDC-c76f1f' ? amountIn : amountOut) as
+                | BigInt
+                | undefined;
+            } else
+              volume = (tokenIn === 'WEGLD-bd4d79' ? amountIn : amountOut) as
+                | BigInt
+                | undefined;
+            const fee = swapTokenEvent.feeAmount as BigInt | undefined;
+            const date = new Date(Number(event.timestamp) * 1000)
+              .addHours(-3)
+              .toISOString();
+            const destination = swapTokenEvent.getTopics().caller;
+            const price = amountIn?.dividedBy(amountOut!) as BigInt | undefined;
+
+            const indexerDataEntry: IndexerData = {
+              date,
+              provider: 'xexchange',
+              hash: event.identifier,
+              timestamp: event.timestamp,
+              tokenIn,
+              tokenOut,
+              price: NumberUtils.denominate(price!, 6),
+              pair: `${tokenIn}/${tokenOut}`,
+              volume: checkUSDC
+                ? NumberUtils.denominate(volume!, 6)
+                : NumberUtils.denominate(volume!, 18),
+              fee: NumberUtils.denominate(fee!, 18),
+              destination,
+            };
+
+            // Do not add duplicate logs
+            if (indexerEntries.length > 0) {
+              if (this.checkDuplicate(indexerEntries, indexerDataEntry)) {
+                indexerEntries.push(indexerDataEntry);
+              }
+            } else {
               indexerEntries.push(indexerDataEntry);
             }
-          });
-        } catch (e) {
-          console.log('Error: ', e);
-        }
+          }
+        });
+      } catch (e) {
+        console.log('Error: ', e);
       }
 
       if (i % 5000 === 0 && i !== 0) {
@@ -148,12 +158,21 @@ export class XexchangeIndexer implements IndexerInterface {
     }
 
     return {
-      transactionsLength: transactions.length,
-
-      data,
+      // indexerEntries: indexerEntries,
       decodedEventsLength: decodedEvents.length,
     };
   }
+
+  checkDuplicate = (entries: IndexerData[], indexerDataEntry: IndexerData) => {
+    return !entries.find(
+      (entry) =>
+        entry.hash === indexerDataEntry.hash &&
+        entry.destination === indexerDataEntry.destination &&
+        entry.address === indexerDataEntry.address &&
+        entry.tokenIn === indexerDataEntry.tokenIn &&
+        entry.tokenOut === indexerDataEntry.tokenOut,
+    );
+  };
 
   /**
    * @deprecated
